@@ -1,0 +1,41 @@
+<div id="onboarding-step" class="step-fragment">
+    <p class="is-uppercase has-text-weight-semibold has-text-grey is-size-7 mb-3">Step {{ currentStepNumber }} of {{ totalSteps }}</p>
+    <h2 class="title is-3 mb-3">Browser Automation (Playwright)</h2>
+    <p class="subtitle is-5 has-text-grey-dark">
+        Enable Playwright to give your agent the ability to interact with web pages &mdash;
+        navigate to URLs, click buttons, fill forms, take screenshots, and extract content
+        from JavaScript-heavy sites.
+    </p>
+
+    {% if error %}
+    <article class="message is-danger">
+        <div class="message-body">{{ error }}</div>
+    </article>
+    {% endif %}
+
+    <form method="post" action="/onboarding/playwright">
+        <div class="field">
+            <label class="checkbox is-medium">
+                <input type="checkbox" name="playwrightEnabled" value="true" {% if playwrightEnabled %}checked{% endif %}>
+                &nbsp;Enable browser automation
+            </label>
+        </div>
+
+        <div class="notification is-light mt-4">
+            <p class="has-text-weight-semibold mb-2">What this does</p>
+            <ul class="has-text-grey-dark">
+                <li>Adds browser tools (navigate, click, fill, screenshot, etc.) to your agent</li>
+                <li>Chromium will be automatically downloaded on first use</li>
+                <li>The browser runs in headless mode by default</li>
+            </ul>
+            <p class="has-text-grey-dark mt-2">Stored property: <code>agent.tools.playwright.enabled</code></p>
+        </div>
+
+        <div class="buttons mt-4">
+            <a class="button is-light is-medium" href="{{ previousStepUrl }}">Back</a>
+            <button class="button is-primary is-medium" type="submit">Continue</button>
+            {% if isOptional %}<a class="button is-ghost is-medium" href="{{ nextStepUrl }}">Skip</a>{% endif %}
+            <span class="button is-ghost is-medium htmx-indicator">Saving...</span>
+        </div>
+    </form>
+</div>

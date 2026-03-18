@@ -1,0 +1,13 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    implementation project(':base')
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.ai:spring-ai-client-chat'
+    implementation 'com.microsoft.playwright:playwright:1.52.0'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
