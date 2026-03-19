@@ -4,6 +4,7 @@ import ai.agentrunr.SupportedProvider;
 import ai.agentrunr.configuration.ConfigurationManager;
 import ai.agentrunr.onboarding.OnboardingProvider;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -18,6 +19,12 @@ public class S2_ProviderStep implements OnboardingProvider {
     static final String SESSION_MODEL = "onboarding.model";
     static final String SESSION_API_KEY = "onboarding.apiKey";
 
+    private final Environment env;
+
+    public S2_ProviderStep(Environment env) {
+        this.env = env;
+    }
+
     @Override
     public String getStepId() {return "provider";}
 
@@ -30,7 +37,7 @@ public class S2_ProviderStep implements OnboardingProvider {
     @Override
     public void prepareModel(Map<String, Object> session, Map<String, Object> model) {
         model.put("providers", SupportedProvider.supportedAgents());
-        model.put("selectedProvider", session.getOrDefault(SESSION_PROVIDER, ""));
+        model.put("selectedProvider", session.getOrDefault(SESSION_PROVIDER, env.getProperty("spring.ai.model.chat", "")));
     }
 
     @Override

@@ -18,7 +18,7 @@
         <div class="field">
             <label class="label" for="telegramBotToken">Telegram bot token</label>
             <div class="control">
-                <input id="telegramBotToken" class="input is-medium" type="password" name="telegramBotToken" placeholder="Paste the Telegram bot token" autocomplete="off">
+                <input id="telegramBotToken" class="input is-medium" type="password" name="telegramBotToken" value="{{ telegramToken }}" placeholder="Paste the Telegram bot token" autocomplete="off">
             </div>
         </div>
 

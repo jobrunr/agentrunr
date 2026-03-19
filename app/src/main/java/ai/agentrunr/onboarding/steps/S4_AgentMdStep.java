@@ -38,13 +38,19 @@ public class S4_AgentMdStep implements OnboardingProvider {
     public void prepareModel(Map<String, Object> session, Map<String, Object> model) {
         Object agentContent = session.get(SESSION_AGENT_CONTENT);
         if (agentContent == null) {
-            try {
-                agentContent = agentWorkspace.createRelative("AGENT-ORIGINAL.md").getContentAsString(StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                agentContent = "";
-            }
+            agentContent = readFile("AGENT.md");
+            if (agentContent == null) agentContent = readFile("AGENT-ORIGINAL.md");
+            if (agentContent == null) agentContent = "";
         }
         model.put("agentContent", agentContent);
+    }
+
+    private String readFile(String name) {
+        try {
+            return agentWorkspace.createRelative(name).getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     @Override

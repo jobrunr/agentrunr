@@ -3,6 +3,7 @@ package ai.agentrunr.onboarding.steps;
 import ai.agentrunr.SupportedProvider;
 import ai.agentrunr.onboarding.OnboardingProvider;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -10,6 +11,12 @@ import java.util.Map;
 @Component
 @Order(30)
 public class S3_CredentialsStep implements OnboardingProvider {
+
+    private final Environment env;
+
+    public S3_CredentialsStep(Environment env) {
+        this.env = env;
+    }
 
     @Override
     public String getStepId() {return "credentials";}
@@ -22,18 +29,20 @@ public class S3_CredentialsStep implements OnboardingProvider {
 
     @Override
     public void prepareModel(Map<String, Object> session, Map<String, Object> model) {
-        String providerId = (String) session.getOrDefault(S2_ProviderStep.SESSION_PROVIDER, "");
+        String providerId = (String) session.getOrDefault(S2_ProviderStep.SESSION_PROVIDER, env.getProperty("spring.ai.model.chat", ""));
         SupportedProvider provider = SupportedProvider.from(providerId).orElse(null);
         if (provider == null) return;
 
         String currentModel = (String) session.get(S2_ProviderStep.SESSION_MODEL);
+        String existingModel = env.getProperty(provider.createPropertyKey("chat.options.model"), "");
+        String existingApiKey = env.getProperty(provider.createPropertyKey("api-key"), "");
         model.put("selectedProvider", provider.id());
         model.put("providerLabel", provider.label());
         model.put("providerApiPropertyKey", provider.createPropertyKey("api-key"));
         model.put("chatModelPropertyKey", provider.createPropertyKey("chat.options.model"));
         model.put("requiresApiKey", provider.requiresApiKey());
-        model.put("apiKey", session.getOrDefault(S2_ProviderStep.SESSION_API_KEY, ""));
-        model.put("model", currentModel != null && !currentModel.isBlank() ? currentModel : provider.defaultModel());
+        model.put("apiKey", session.getOrDefault(S2_ProviderStep.SESSION_API_KEY, existingApiKey));
+        model.put("model", currentModel != null && !currentModel.isBlank() ? currentModel : (!existingModel.isBlank() ? existingModel : provider.defaultModel()));
         provider.systemWideToken().ifPresent(t -> model.put("systemWideTokenName", t.name()));
     }
 

@@ -3,6 +3,7 @@ package ai.agentrunr.channels.telegram;
 import ai.agentrunr.configuration.ConfigurationManager;
 import ai.agentrunr.onboarding.OnboardingProvider;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -14,6 +15,12 @@ public class TelegramOnboardingProvider implements OnboardingProvider {
 
     static final String SESSION_TOKEN = "onboarding.telegram.token";
     static final String SESSION_USERNAME = "onboarding.telegram.username";
+
+    private final Environment env;
+
+    public TelegramOnboardingProvider(Environment env) {
+        this.env = env;
+    }
 
     @Override
     public boolean isOptional() { return true; }
@@ -29,7 +36,8 @@ public class TelegramOnboardingProvider implements OnboardingProvider {
 
     @Override
     public void prepareModel(Map<String, Object> session, Map<String, Object> model) {
-        model.put("telegramUsername", session.getOrDefault(SESSION_USERNAME, ""));
+        model.put("telegramUsername", session.getOrDefault(SESSION_USERNAME, env.getProperty("agent.channels.telegram.username", "")));
+        model.put("telegramToken", session.getOrDefault(SESSION_TOKEN, env.getProperty("agent.channels.telegram.token", "")));
     }
 
     @Override

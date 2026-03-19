@@ -11,9 +11,6 @@ spring:
       embedding: unknown
       image: unknown
       moderation: unknown
-    mcp:
-      client:
-        enabled: false
 pebble:
   suffix: .html.peb
 agent:

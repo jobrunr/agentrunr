@@ -42,7 +42,7 @@ public class ConfigurationManager {
         writeApplicationYaml(config);
     }
 
-    private Map<String, Object> readApplicationYaml() throws IOException {
+    public Map<String, Object> readApplicationYaml() throws IOException {
         Yaml yaml = new Yaml();
 
         Map<String, Object> config;
