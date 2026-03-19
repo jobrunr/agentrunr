@@ -1,18 +1,19 @@
 package ai.javaclaw.tools;
 
+import ai.javaclaw.tasks.RecurringTask;
 import ai.javaclaw.tasks.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static java.util.Optional.ofNullable;
 
 /**
  * Creates and manages high-level tasks for AI assistants.
  * Each task is persisted as a Markdown file in the workspace directory.
- * * @author Christian Tzolov (adapted)
  */
 public class TaskTool {
 
@@ -38,7 +39,7 @@ public class TaskTool {
 
     @Tool(description = """
             Use this tool to manage high-level tasks that represent major units of work.
-            Tasks are persistent, trackable entities that the AI can work on.
+            Tasks are persistent, trackable entities that you can work on backed by JobRunr.
             
             ## When to Use:
             - When a user provides a new goal or assignment.
@@ -61,10 +62,10 @@ public class TaskTool {
     }
 
     @Tool(description = """
-            Schedules a task for a specific date and time in the future.
-            Use this when a user explicitly mentions a time or date (e.g., "Remind me next Monday at 9 AM").
+            Schedules a task using JobRunr for a specific date and time in the future.
+            Use this when a user explicitly mentions a time or date (e.g., "Remind me next Monday at 9 AM" or "Schedule at 3pm").
             
-            - executionTime: The specific local date and time when the task should run in this format YYYY-MM-ddTHH:mm:ss (example 2025-03-17T09:00:00).
+            - executionTime: The specific local date and time (without timezone) when the task should run in this format YYYY-MM-ddTHH:mm:ss (example 2025-03-17T09:00:00).
             - name: Short, descriptive identifier (e.g., 'monday-morning-sync').
             - description: Detailed instructions on what the task entails.
             """)
@@ -82,10 +83,10 @@ public class TaskTool {
     }
 
     @Tool(description = """
-            Schedules a task that repeats at regular intervals based on a cron expression.
+            Schedules a task using JobRunr that repeats at regular intervals based on a cron expression.
             Use this for recurring activities like daily reports, weekly checks, etc.
             
-            - cronExpression: A standard quartz-style cron expression (e.g., '0 12 * * *' for daily at noon. Do not use ? in a cron expression).
+            - cronExpression: A standard quartz-style cron expression (e.g., '0 12 * * *' for daily at noon or '* * * * *' for every minute. Do not use ? in a cron expression).
             - name: Short, descriptive identifier (e.g., 'weekly-log-cleanup').
             - description: Detailed instructions on what the task entails.
             """)
@@ -98,6 +99,38 @@ public class TaskTool {
             logger.error("Failed to schedule recurring task", e);
             return "Error: Could not schedule recurring task. " + e.getMessage();
         }
+    }
+
+    @Tool(description = """
+            Deletes a recurring task by name, stopping it from running again.
+            Use this when a user wants to remove, cancel, or stop a recurring task.
+            
+            - name: The name of the recurring task to delete (e.g., 'weekly-log-cleanup').
+            """)
+    public String deleteRecurringTask(String name) {
+        try {
+            this.taskManager.deleteRecurringTask(name);
+            return String.format("Recurring task '%s' has been deleted successfully.", name);
+        } catch (Exception e) {
+            logger.error("Failed to delete recurring task", e);
+            return "Error: Could not delete recurring task. " + e.getMessage();
+        }
+    }
+
+    @Tool(description = """
+            List all recurring tasks with their id, name and description
+            Use this when a user wants to list their recurring tasks.
+            """)
+    public String listRecurringTasks() {
+        List<RecurringTask> allRecurringTasks = taskManager.getAllRecurringTasks();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Recurring tasks:").append(System.lineSeparator());
+        allRecurringTasks.forEach(rt -> {
+            sb.append("- id: ").append(rt.getId()).append(System.lineSeparator());
+            sb.append("  name: ").append(rt.getName()).append(System.lineSeparator());
+            sb.append("  description: ").append(rt.getDescription(), 0, Math.min(rt.getDescription().length(), 100)).append(System.lineSeparator());
+        });
+        return sb.toString();
     }
 
     public static Builder builder() {

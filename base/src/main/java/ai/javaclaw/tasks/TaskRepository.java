@@ -15,4 +15,8 @@ public interface TaskRepository {
 
     RecurringTask getRecurringTaskById(String id);
 
+    List<RecurringTask> getAllRecurringTasks();
+
+    void deleteRecurringTask(String id);
+
 }

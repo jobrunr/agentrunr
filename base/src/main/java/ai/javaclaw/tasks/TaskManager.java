@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 @Component
 public class TaskManager {
@@ -38,6 +39,21 @@ public class TaskManager {
         RecurringTask recurringTask = taskRepository.save(RecurringTask.newRecurringTask(name, description));
         jobScheduler.<RecurringTaskHandler>scheduleRecurrently(recurringTask.getName(), cronExpression, x -> x.executeTask(recurringTask.getId()));
         log.info("Task '{}' ({}) has been scheduled recurrently with cronExpression {}.", name, recurringTask.getId(), cronExpression);
+    }
+
+    public void deleteRecurringTask(String name) {
+        RecurringTask recurringTask = taskRepository.getAllRecurringTasks()
+                .stream()
+                .filter(x -> x.getName().equals(name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Recurring task with name " + name + " was not found"));
+        jobScheduler.deleteRecurringJob(name);
+        taskRepository.deleteRecurringTask(recurringTask.getId());
+        log.info("Recurring task '{}' ({}) has been deleted.", name, recurringTask.getId());
+    }
+
+    public List<RecurringTask> getAllRecurringTasks() {
+        return taskRepository.getAllRecurringTasks();
     }
 
     public void createTaskFromRecurringTask(RecurringTask recurringTask) {

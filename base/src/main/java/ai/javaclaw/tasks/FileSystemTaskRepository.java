@@ -96,6 +96,31 @@ public class FileSystemTaskRepository implements TaskRepository {
         }
     }
 
+    @Override
+    public List<RecurringTask> getAllRecurringTasks() {
+        try {
+            Path dir = ensureDirectory(taskDir.resolve("recurring"));
+            try(Stream<Path> recurringTasks = Files.list(dir)) {
+                return recurringTasks
+                        .map(p -> p.toAbsolutePath().toString())
+                        .map(this::getRecurringTaskById)
+                        .toList();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Could not list all recurring tasks", e);
+        }
+    }
+
+
+    @Override
+    public void deleteRecurringTask(String id) {
+        try {
+            Files.deleteIfExists(Path.of(id));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete recurring task file: " + id, e);
+        }
+    }
+
     // --- private helpers ---
 
     private Path buildTaskPath(Task task) {
