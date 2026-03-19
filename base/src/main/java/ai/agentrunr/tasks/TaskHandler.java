@@ -1,6 +1,8 @@
 package ai.agentrunr.tasks;
 
 import ai.agentrunr.agent.Agent;
+import ai.agentrunr.channels.Channel;
+import ai.agentrunr.channels.ChannelRegistry;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.context.JobRunrDashboardLogger;
 import org.slf4j.Logger;
@@ -14,10 +16,12 @@ public class TaskHandler {
 
     private final Agent agent;
     private final TaskRepository taskRepository;
+    private final ChannelRegistry channelRegistry;
 
-    public TaskHandler(Agent agent, TaskRepository taskRepository) {
+    public TaskHandler(Agent agent, TaskRepository taskRepository, ChannelRegistry channelRegistry) {
         this.agent = agent;
         this.taskRepository = taskRepository;
+        this.channelRegistry = channelRegistry;
     }
 
     @Job(name = "%0", retries = 3)
@@ -35,9 +39,21 @@ public class TaskHandler {
             TaskResult result = agent.prompt(taskId, agentInput, TaskResult.class);
             taskRepository.save(inProgress.withFeedback(result.feedback()).withStatus(result.newStatus()));
             LOGGER.info("Finished task: {} with status {}", task.getName(), result.newStatus());
+            notifyUser(task.getName(), result);
         } catch (Exception e) {
             taskRepository.save(inProgress.withStatus(Task.Status.todo));
             throw e;
+        }
+    }
+
+    private void notifyUser(String taskName, TaskResult result) {
+        try {
+            Channel channel = channelRegistry.getLatestChannel();
+            if (channel != null) {
+                channel.sendMessage("📋 Task '%s' completed:\n%s".formatted(taskName, result.feedback()));
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Failed to notify user about task '{}': {}", taskName, e.getMessage());
         }
     }
 
