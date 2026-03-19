@@ -19,7 +19,7 @@ public class RecurringTaskHandler {
         this.taskRepository = taskRepository;
     }
 
-    @Job(name = "Creating recurring task %0", retries = 3)
+    @Job(name = "Recurring task '%0'", retries = 3)
     public void executeTask(String recurringTaskId) {
         RecurringTask recurringTask = taskRepository.getRecurringTaskById(recurringTaskId);
         taskManager.createTaskFromRecurringTask(recurringTask);

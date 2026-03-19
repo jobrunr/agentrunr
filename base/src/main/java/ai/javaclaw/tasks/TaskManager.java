@@ -1,6 +1,10 @@
 package ai.javaclaw.tasks;
 
+import org.jobrunr.jobs.Job;
+import org.jobrunr.jobs.states.StateName;
 import org.jobrunr.scheduling.JobScheduler;
+import org.jobrunr.storage.Paging;
+import org.jobrunr.storage.StorageProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -15,10 +19,12 @@ public class TaskManager {
 
     private static final Logger log = LoggerFactory.getLogger(TaskManager.class);
     private final JobScheduler jobScheduler;
+    private final StorageProvider storageProvider;
     private final TaskRepository taskRepository;
 
-    public TaskManager(JobScheduler jobScheduler, TaskRepository taskRepository) {
+    public TaskManager(JobScheduler jobScheduler, StorageProvider storageProvider, TaskRepository taskRepository) {
         this.jobScheduler = jobScheduler;
+        this.storageProvider = storageProvider;
         this.taskRepository = taskRepository;
     }
 
@@ -47,7 +53,13 @@ public class TaskManager {
                 .filter(x -> x.getName().equals(name))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Recurring task with name " + name + " was not found"));
-        jobScheduler.deleteRecurringJob(name);
+        jobScheduler.deleteRecurringJob(recurringTask.getName());
+        List<Job> jobList = storageProvider.getJobList(StateName.SCHEDULED, Paging.AmountBasedList.ascOnUpdatedAt(1000));
+        jobList.stream()
+                .filter(j -> j.getRecurringJobId().map(recurringTask.getName()::equals).orElse(false))
+                .map(Job::getId)
+                .findFirst()
+                .ifPresent(jobScheduler::delete);
         taskRepository.deleteRecurringTask(recurringTask.getId());
         log.info("Recurring task '{}' ({}) has been deleted.", name, recurringTask.getId());
     }
