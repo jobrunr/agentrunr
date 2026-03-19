@@ -97,14 +97,20 @@ public class FileSystemTaskRepository implements TaskRepository {
     }
 
     @Override
-    public RecurringTask getRecurringTaskByName(String name) {
-        String sanitizedName = sanitizeName(name);
-        Path path = taskDir.resolve("recurring").resolve(sanitizedName + ".md");
-        if (!Files.exists(path)) {
-            throw new TaskNotFoundException(name, new IOException("Recurring task file not found: " + path));
+    public List<RecurringTask> getAllRecurringTasks() {
+        try {
+            Path dir = ensureDirectory(taskDir.resolve("recurring"));
+            try(Stream<Path> recurringTasks = Files.list(dir)) {
+                return recurringTasks
+                        .map(p -> p.toAbsolutePath().toString())
+                        .map(this::getRecurringTaskById)
+                        .toList();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Could not list all recurring tasks", e);
         }
-        return getRecurringTaskById(path.toAbsolutePath().toString());
     }
+
 
     @Override
     public void deleteRecurringTask(String id) {

@@ -18,7 +18,9 @@ import org.mockito.Mockito;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.jobrunr.server.BackgroundJobServerConfiguration.usingStandardBackgroundJobServerConfiguration;
 import static org.mockito.ArgumentMatchers.any;
@@ -88,10 +90,10 @@ class TaskManagerTest {
         taskManager.scheduleRecurrently(cronExpression, "check-mail", "Check the inbox every 15 minutes");
 
         await().untilAsserted(() -> {
-            var jobs = storageProvider.getRecurringJobs();
-            assert jobs.size() == 1;
-            assert jobs.getFirst().getId().equals("check-mail");
-            assert jobs.getFirst().getScheduleExpression().equals(cronExpression);
+            var recurringJobs = storageProvider.getRecurringJobs();
+            assertThat(recurringJobs).hasSize(1);
+            assertThat(recurringJobs.getFirst().getId()).isEqualTo("check-mail");
+            assertThat(recurringJobs.getFirst().getScheduleExpression()).isEqualTo(cronExpression);
         });
     }
 
@@ -100,18 +102,20 @@ class TaskManagerTest {
         String cronExpression = "0 */15 * * *";
         RecurringTask saved = new RecurringTask("some-id", "check-mail", "Check the inbox every 15 minutes");
         when(taskRepositoryMock.save(any(RecurringTask.class))).thenReturn(saved);
-        when(taskRepositoryMock.getRecurringTaskByName("check-mail")).thenReturn(saved);
+        when(taskRepositoryMock.getAllRecurringTasks()).thenReturn(List.of(saved));
 
         taskManager.scheduleRecurrently(cronExpression, "check-mail", "Check the inbox every 15 minutes");
 
         await().untilAsserted(() -> {
-            assert storageProvider.getRecurringJobs().size() == 1;
+            var recurringJobs = storageProvider.getRecurringJobs();
+            assertThat(recurringJobs).hasSize(1);
         });
 
         taskManager.deleteRecurringTask("check-mail");
 
         await().untilAsserted(() -> {
-            assert storageProvider.getRecurringJobs().isEmpty();
+            var recurringJobs = storageProvider.getRecurringJobs();
+            assertThat(recurringJobs).isEmpty();
         });
         verify(taskRepositoryMock).deleteRecurringTask("some-id");
     }
