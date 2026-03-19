@@ -10,6 +10,7 @@ import org.jobrunr.scheduling.JobScheduler;
 import org.jobrunr.server.JobActivator;
 import org.jobrunr.server.JobActivatorShutdownException;
 import org.jobrunr.storage.InMemoryStorageProvider;
+import org.jobrunr.storage.Paging;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +57,7 @@ class TaskManagerTest {
                 .initialize()
                 .getJobScheduler();
 
-        taskManager = new TaskManager(jobScheduler, taskRepositoryMock);
+        taskManager = new TaskManager(jobScheduler, storageProvider, taskRepositoryMock);
     }
 
     @AfterEach
@@ -116,6 +117,12 @@ class TaskManagerTest {
             var recurringJobs = storageProvider.getRecurringJobs();
             assertThat(recurringJobs).hasSize(1);
         });
+
+        taskManager.deleteRecurringTask("check-mail");
+
+        await().untilAsserted(() -> assertThat(storageProvider.getRecurringJobs()).isEmpty());
+        await().untilAsserted(() -> assertThat(storageProvider.getJobList(StateName.SCHEDULED, Paging.AmountBasedList.ascOnCreatedAt(100))).isEmpty());
+        verify(taskRepositoryMock).deleteRecurringTask("some-id");
 
         taskManager.deleteRecurringTask("check-mail");
 
