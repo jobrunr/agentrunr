@@ -107,7 +107,7 @@ public class ChatChannel implements Channel {
     private static String buildBackgroundMessageHtml(String text) {
         return "<div id=\"chat-messages\" hx-swap-oob=\"beforeend show:bottom\">" +
                 "<article class=\"ar-msg ar-msg--agent\">" +
-                "<div class=\"ar-msg__avatar\">AR</div>" +
+                "<div class=\"ar-msg__avatar\">JC</div>" +
                 "<div class=\"ar-msg__bubble\">" + HtmlUtils.htmlEscape(text) + "</div>" +
                 "</article></div>";
     }

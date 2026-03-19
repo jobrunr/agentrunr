@@ -1,6 +1,7 @@
 package ai.javaclaw.tasks;
 
 import ai.javaclaw.agent.Agent;
+import ai.javaclaw.channels.ChannelRegistry;
 import ai.javaclaw.tasks.Task.Status;
 import ai.javaclaw.tasks.TaskHandler.TaskResult;
 import org.jobrunr.configuration.JobRunr;
@@ -33,11 +34,13 @@ class TaskManagerTest {
     TaskManager taskManager;
     TaskRepository taskRepositoryMock;
     Agent agentMock;
+    ChannelRegistry channelRegistryMock;
 
     @BeforeEach
     void setUp() {
         agentMock = Mockito.mock(Agent.class);
         taskRepositoryMock = Mockito.mock(TaskRepository.class);
+        channelRegistryMock = Mockito.mock(ChannelRegistry.class);
         storageProvider = new InMemoryStorageProvider();
         JobScheduler jobScheduler = JobRunr.configure()
                 .useStorageProvider(storageProvider)
@@ -98,7 +101,7 @@ class TaskManagerTest {
         return new JobActivator() {
             @Override
             public <T> T activateJob(Class<T> type) throws JobActivatorShutdownException {
-                if (TaskHandler.class.equals(type)) return (T) new TaskHandler(agentMock, taskRepositoryMock);
+                if (TaskHandler.class.equals(type)) return (T) new TaskHandler(agentMock, taskRepositoryMock, channelRegistryMock);
                 else if (RecurringTaskHandler.class.equals(type)) return (T) new RecurringTaskHandler(taskManager, taskRepositoryMock);
                 else throw new IllegalStateException("Type " + type + " is unknown");
             }

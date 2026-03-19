@@ -72,14 +72,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     static String agentBubble(String text) {
         return "<article class=\"ar-msg ar-msg--agent\">" +
-                "<div class=\"ar-msg__avatar\">AR</div>" +
+                "<div class=\"ar-msg__avatar\">JC</div>" +
                 "<div class=\"ar-msg__bubble\">" + escape(text) + "</div>" +
                 "</article>";
     }
 
     private static String typingDots() {
         return "<div class=\"ar-typing\">" +
-                "<div class=\"ar-msg__avatar\">AR</div>" +
+                "<div class=\"ar-msg__avatar\">JC</div>" +
                 "<div class=\"ar-typing__dots\"><span></span><span></span><span></span></div>" +
                 "</div>";
     }

@@ -174,7 +174,7 @@
         <div class="container">
             <div id="chat-messages">
                 <article class="ar-msg ar-msg--agent">
-                    <div class="ar-msg__avatar">AR</div>
+                    <div class="ar-msg__avatar">JC</div>
                     <div class="ar-msg__bubble">Hi! I'm your JavaClaw assistant. How can I help you today?</div>
                 </article>
             </div>

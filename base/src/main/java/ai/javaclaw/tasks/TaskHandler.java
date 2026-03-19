@@ -1,6 +1,8 @@
 package ai.javaclaw.tasks;
 
 import ai.javaclaw.agent.Agent;
+import ai.javaclaw.channels.Channel;
+import ai.javaclaw.channels.ChannelRegistry;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.context.JobRunrDashboardLogger;
 import org.slf4j.Logger;
@@ -14,10 +16,12 @@ public class TaskHandler {
 
     private final Agent agent;
     private final TaskRepository taskRepository;
+    private final ChannelRegistry channelRegistry;
 
-    public TaskHandler(Agent agent, TaskRepository taskRepository) {
+    public TaskHandler(Agent agent, TaskRepository taskRepository, ChannelRegistry channelRegistry) {
         this.agent = agent;
         this.taskRepository = taskRepository;
+        this.channelRegistry = channelRegistry;
     }
 
     @Job(name = "%0", retries = 3)
@@ -35,9 +39,25 @@ public class TaskHandler {
             TaskResult result = agent.prompt(taskId, agentInput, TaskResult.class);
             taskRepository.save(inProgress.withFeedback(result.feedback()).withStatus(result.newStatus()));
             LOGGER.info("Finished task: {} with status {}", task.getName(), result.newStatus());
+            notifyUser(task, result);
         } catch (Exception e) {
             taskRepository.save(inProgress.withStatus(Task.Status.todo));
             throw e;
+        }
+    }
+
+    private void notifyUser(Task task, TaskResult result) {
+        try {
+            Channel channel = channelRegistry.getLatestChannel();
+            if (channel != null) {
+                String message = String.format("Task '%s' %s:\n%s",
+                        task.getName(), result.newStatus(), result.feedback());
+                channel.sendMessage(message);
+            } else {
+                LOGGER.warn("No active channel to notify about task '{}' completion", task.getName());
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Failed to send task completion notification for '{}': {}", task.getName(), e.getMessage());
         }
     }
 
