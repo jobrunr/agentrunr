@@ -10,6 +10,7 @@ import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -26,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * falling back to an in-memory queue for REST polling.
  */
 @Component
+@ConditionalOnProperty(name = "javaclaw.chat.transport", havingValue = "spring-websocket", matchIfMissing = true)
 public class ChatChannel implements Channel {
 
     private static final Logger log = LoggerFactory.getLogger(ChatChannel.class);
