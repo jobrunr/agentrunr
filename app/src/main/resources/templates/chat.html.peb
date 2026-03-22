@@ -75,7 +75,7 @@
 }
 .ar-msg--user  .ar-msg__bubble {
     background: var(--bulma-primary);
-    color: #fff;
+    color: var(--bulma-body-color);
     border-bottom-right-radius: .25rem;
     box-shadow: 0 3px 14px color-mix(in srgb, var(--bulma-primary) 40%, transparent);
 }

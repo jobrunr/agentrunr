@@ -20,6 +20,8 @@ import java.util.Map;
  */
 public class YamlParser {
 
+    public static final String FRONTMATTER_MARKER = "---";
+
     private YamlParser() {}
 
     public static YamlDocument parse(String content) {
@@ -29,7 +31,7 @@ public class YamlParser {
 
         String normalized = content.replace("\r\n", "\n");
 
-        if (!normalized.startsWith("---")) {
+        if (!normalized.startsWith(FRONTMATTER_MARKER)) {
             return new YamlDocument(Map.of(), content);
         }
 
@@ -60,14 +62,14 @@ public class YamlParser {
         boolean hasBody = doc.body() != null && !doc.body().isBlank();
 
         if (hasFrontmatter) {
-            sb.append("---").append(System.lineSeparator());
+            sb.append(FRONTMATTER_MARKER).append(System.lineSeparator());
             doc.frontmatter().forEach((k, v) ->
                     sb.append(k).append(": ").append(v).append(System.lineSeparator()));
         }
 
         if (hasBody) {
             if (hasFrontmatter) {
-                sb.append("---").append(System.lineSeparator());
+                sb.append(FRONTMATTER_MARKER).append(System.lineSeparator());
             }
             sb.append(doc.body());
         }
@@ -81,7 +83,7 @@ public class YamlParser {
         // "---\n" or "---" at the very end
         int idx = 0;
         while (idx < text.length()) {
-            if (text.startsWith("---", idx)) {
+            if (text.startsWith(FRONTMATTER_MARKER, idx)) {
                 // Must be at the start of a line (idx == 0 or preceded by \n)
                 if (idx == 0 || text.charAt(idx - 1) == '\n') {
                     int end = idx + 3;

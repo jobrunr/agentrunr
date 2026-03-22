@@ -11,20 +11,18 @@ public class ChannelRegistry {
 
     private final Map<String, Channel> channels;
     private final AtomicReference<ChannelMessageReceivedEvent> lastChannelMessage;
-    private final String defaultChannelName;
+    private String defaultChannelName;
 
     public ChannelRegistry() {
-        this("TelegramChannel");
-    }
-
-    public ChannelRegistry(String defaultChannelName) {
         this.channels = new HashMap<>();
         this.lastChannelMessage = new AtomicReference<>();
-        this.defaultChannelName = defaultChannelName;
     }
 
     public void registerChannel(Channel channel) {
         channels.put(channel.getName(), channel);
+        if (channels.size() == 1) {
+            this.defaultChannelName = channel.getName();
+        }
     }
 
     public void unregisterChannel(Channel channel) {
