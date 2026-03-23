@@ -1,6 +1,8 @@
 package ai.javaclaw.chat.ws;
 
 import ai.javaclaw.chat.ChatChannel;
+import ai.javaclaw.chat.ChatHtml;
+import ai.javaclaw.chat.Htmx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -9,9 +11,9 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-import org.springframework.web.util.HtmlUtils;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -29,9 +31,21 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         chatChannel.setWsSession(session);
         log.info("WebChat WebSocket connected: {}", session.getId());
+
+        List<String> ids = chatChannel.conversationIds();
+        String selectedId = ids.get(0);
+
+        String selector = ChatHtml.conversationSelector(ids, selectedId);
+        String bubbles = String.join("", chatChannel.loadHistoryAsHtml(selectedId));
+        String inputArea = ChatHtml.chatInputArea(selectedId);
+        session.sendMessage(new TextMessage(
+                Htmx.oobInnerHtml("channel-selector", selector) +
+                Htmx.oobInnerHtml("chat-messages", bubbles) +
+                Htmx.oobInnerHtml("chat-input-area", inputArea)
+        ));
     }
 
     @Override
@@ -44,57 +58,48 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @SuppressWarnings("unchecked")
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         Map<String, Object> payload = objectMapper.readValue(message.getPayload(), Map.class);
+        String type = (String) payload.get("type");
+
+        if ("channelChanged".equals(type)) {
+            handleChannelChanged(payload);
+        } else if ("userMessage".equals(type)) {
+            handleUserMessage(payload);
+        }
+    }
+
+    private void handleChannelChanged(Map<String, Object> payload) throws Exception {
+        String conversationId = (String) payload.get("conversationId");
+        if (conversationId == null || conversationId.isBlank()) return;
+
+        String bubbles = String.join("", chatChannel.loadHistoryAsHtml(conversationId));
+        String inputArea = ChatHtml.chatInputArea(conversationId);
+        chatChannel.sendHtml(
+                Htmx.oobInnerHtml("chat-messages", bubbles) +
+                Htmx.oobInnerHtml("chat-input-area", inputArea)
+        );
+    }
+
+    private void handleUserMessage(Map<String, Object> payload) throws Exception {
+        String conversationId = (String) payload.get("conversationId");
         String userMessage = (String) payload.get("message");
 
         if (userMessage == null || userMessage.isBlank()) return;
         userMessage = userMessage.trim();
+        if (conversationId == null || conversationId.isBlank()) conversationId = "web";
 
         // Echo user message + show typing indicator
-        chatChannel.sendHtml(oobAppend("chat-messages", userBubble(userMessage)) +
-                oobReplace("typing-indicator", typingDots())
+        chatChannel.sendHtml(
+                Htmx.oobAppend("chat-messages", ChatHtml.userBubble(userMessage)) +
+                Htmx.oobReplace("typing-indicator", ChatHtml.typingDots())
         );
 
         // Call agent (blocking — background tasks may push messages via ChatChannel during this)
-        String response = chatChannel.chat(userMessage);
+        String response = chatChannel.chat(conversationId, userMessage);
 
         // Send agent response + clear typing indicator
         chatChannel.sendHtml(
-                oobAppend("chat-messages", agentBubble(response)) +
-                        oobReplace("typing-indicator", "")
+                Htmx.oobAppend("chat-messages", ChatHtml.agentBubble(response)) +
+                Htmx.oobReplace("typing-indicator", "")
         );
-    }
-
-    // ---- HTML helpers ----
-
-    static String userBubble(String text) {
-        return "<article class=\"ar-msg ar-msg--user\">" +
-                "<div class=\"ar-msg__bubble\">" + escape(text) + "</div>" +
-                "</article>";
-    }
-
-    static String agentBubble(String text) {
-        return "<article class=\"ar-msg ar-msg--agent\">" +
-                "<div class=\"ar-msg__avatar\">JC</div>" +
-                "<div class=\"ar-msg__bubble\">" + escape(text) + "</div>" +
-                "</article>";
-    }
-
-    private static String typingDots() {
-        return "<div class=\"ar-typing\">" +
-                "<div class=\"ar-msg__avatar\">JC</div>" +
-                "<div class=\"ar-typing__dots\"><span></span><span></span><span></span></div>" +
-                "</div>";
-    }
-
-    static String oobAppend(String id, String content) {
-        return "<div id=\"" + id + "\" hx-swap-oob=\"beforeend\">" + content + "</div>";
-    }
-
-    static String oobReplace(String id, String content) {
-        return "<div id=\"" + id + "\" hx-swap-oob=\"true\">" + content + "</div>";
-    }
-
-    private static String escape(String text) {
-        return HtmlUtils.htmlEscape(text);
     }
 }

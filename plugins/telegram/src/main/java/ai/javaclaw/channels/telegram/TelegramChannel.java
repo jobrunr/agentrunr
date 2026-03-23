@@ -16,6 +16,8 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
+import static java.util.Optional.ofNullable;
+
 public class TelegramChannel implements Channel, SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramChannel.class);
@@ -25,6 +27,7 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
     private final Agent agent;
     private final ChannelRegistry channelRegistry;
     private Long chatId;
+    private Integer messageThreadId;
 
     public TelegramChannel(String botToken, String allowedUsername, Agent agent, ChannelRegistry channelRegistry) {
         this(botToken, allowedUsername, new OkHttpTelegramClient(botToken), agent, channelRegistry);
@@ -64,9 +67,10 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
 
         String messageText = requestMessage.getText();
         this.chatId = requestMessage.getChatId();
-        channelRegistry.publishMessageReceivedEvent(new TelegramChannelMessageReceivedEvent(getName(), messageText, chatId));
-        String response = agent.respondTo(messageText);
-        sendMessage(chatId, response);
+        this.messageThreadId = requestMessage.getMessageThreadId();
+        channelRegistry.publishMessageReceivedEvent(new TelegramChannelMessageReceivedEvent(getName(), messageText, chatId, messageThreadId));
+        String response = agent.respondTo(getConversationId(chatId, messageThreadId), messageText);
+        sendMessage(chatId, messageThreadId, response);
     }
 
     @Override
@@ -75,12 +79,13 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
             log.error("No known chatId, cannot send message '{}'", message);
             return;
         }
-        sendMessage(chatId, message);
+        sendMessage(chatId, null, message);
     }
 
-    public void sendMessage(long chatId, String message) {
+    public void sendMessage(long chatId, Integer messageThreadId, String message) {
         SendMessage messageMessage = SendMessage.builder()
-                .chatId(String.valueOf(chatId))
+                .chatId(chatId)
+                .messageThreadId(messageThreadId)
                 .text(message)
                 .build();
         try {
@@ -108,18 +113,27 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
         return normalizedUserName.isBlank() ? null : normalizedUserName;
     }
 
+    private String getConversationId(Long chatId, Integer messageThreadId) {
+        return "telegram-" + chatId + ofNullable(messageThreadId).map(i -> "-" + i).orElse("");
+    }
 
     static class TelegramChannelMessageReceivedEvent extends ChannelMessageReceivedEvent {
 
         private final long chatId;
+        private final Integer messageThreadId;
 
-        public TelegramChannelMessageReceivedEvent(String channel, String message, long chatId) {
+        public TelegramChannelMessageReceivedEvent(String channel, String message, long chatId, Integer messageThreadId) {
             super(channel, message);
             this.chatId = chatId;
+            this.messageThreadId = messageThreadId;
         }
 
         public long getChatId() {
             return chatId;
+        }
+
+        public Integer getMessageThreadId() {
+            return messageThreadId;
         }
     }
 }

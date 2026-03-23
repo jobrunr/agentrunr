@@ -1,5 +1,7 @@
 package ai.javaclaw.tasks;
 
+import ai.javaclaw.files.YamlDocument;
+import ai.javaclaw.files.YamlParser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -13,7 +15,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
@@ -38,17 +42,13 @@ public class FileSystemTaskRepository implements TaskRepository {
     public Task getTaskById(String id) {
         try {
             Path path = Path.of(id);
-            List<String> lines = Files.readAllLines(path);
-            String name = lines.get(1).substring("task: ".length());
-            Instant createdAt = Instant.parse(lines.get(2).substring("createdAt: ".length()));
-            Task.Status status = Task.Status.valueOf(lines.get(3).substring("status: ".length()));
-            StringBuilder desc = new StringBuilder();
-            for (int i = 4; i < lines.size(); i++) {
-                if (lines.get(i).equals("---")) break;
-                if (i == 4) desc.append(lines.get(i).substring("description: ".length()));
-                else desc.append(System.lineSeparator()).append(lines.get(i));
-            }
-            return new Task(id, name, createdAt, status, desc.toString());
+            Map<String, String> fm = YamlParser.parse(Files.readString(path)).frontmatter();
+            return new Task(
+                    id,
+                    fm.get("task"),
+                    Instant.parse(fm.get("createdAt")),
+                    Task.Status.valueOf(fm.get("status")),
+                    fm.getOrDefault("description", ""));
         } catch (IOException e) {
             throw new TaskNotFoundException(id, e);
         }
@@ -82,15 +82,8 @@ public class FileSystemTaskRepository implements TaskRepository {
     public RecurringTask getRecurringTaskById(String id) {
         try {
             Path path = Path.of(id);
-            List<String> lines = Files.readAllLines(path);
-            String name = lines.get(1).substring("task: ".length());
-            StringBuilder desc = new StringBuilder();
-            for (int i = 2; i < lines.size(); i++) {
-                if (lines.get(i).equals("---")) break;
-                if (i == 2) desc.append(lines.get(i).substring("description: ".length()));
-                else desc.append(System.lineSeparator()).append(lines.get(i));
-            }
-            return new RecurringTask(id, name, desc.toString());
+            Map<String, String> fm = YamlParser.parse(Files.readString(path)).frontmatter();
+            return new RecurringTask(id, fm.get("task"), fm.getOrDefault("description", ""));
         } catch (IOException e) {
             throw new TaskNotFoundException(id, e);
         }
@@ -133,21 +126,19 @@ public class FileSystemTaskRepository implements TaskRepository {
     }
 
     private void writeTaskFile(Path path, Task task) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("---").append(System.lineSeparator());
-        sb.append("task: ").append(task.getName()).append(System.lineSeparator());
-        sb.append("createdAt: ").append(task.getCreatedAt()).append(System.lineSeparator());
-        sb.append("status: ").append(task.getStatus()).append(System.lineSeparator());
-        sb.append("description: ").append(task.getDescription()).append(System.lineSeparator());
-        writeFile(path, sb.toString());
+        Map<String, String> fm = new LinkedHashMap<>();
+        fm.put("task", task.getName());
+        fm.put("createdAt", task.getCreatedAt().toString());
+        fm.put("status", task.getStatus().toString());
+        fm.put("description", task.getDescription());
+        writeFile(path, YamlParser.serialize(new YamlDocument(fm, null)));
     }
 
     private void writeRecurringTaskFile(Path path, RecurringTask task) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("---").append(System.lineSeparator());
-        sb.append("task: ").append(task.getName()).append(System.lineSeparator());
-        sb.append("description: ").append(task.getDescription()).append(System.lineSeparator());
-        writeFile(path, sb.toString());
+        Map<String, String> fm = new LinkedHashMap<>();
+        fm.put("task", task.getName());
+        fm.put("description", task.getDescription());
+        writeFile(path, YamlParser.serialize(new YamlDocument(fm, null)));
     }
 
     private static void writeFile(Path path, String content) {

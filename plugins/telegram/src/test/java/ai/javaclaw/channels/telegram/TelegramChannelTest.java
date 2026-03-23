@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,29 +31,186 @@ class TelegramChannelTest {
     @Mock
     private Agent agent;
 
+    // -----------------------------------------------------------------------
+    // Ignored updates
+    // -----------------------------------------------------------------------
+
+    @Test
+    void ignoresUpdatesWithoutMessage() {
+        TelegramChannel channel = channel("allowed_user");
+        Update update = mock(Update.class);
+        when(update.hasMessage()).thenReturn(false);
+
+        channel.consume(update);
+
+        verifyNoInteractions(agent, telegramClient);
+    }
+
+    @Test
+    void ignoresUpdatesWithoutText() {
+        TelegramChannel channel = channel("allowed_user");
+        Update update = mock(Update.class);
+        Message message = mock(Message.class);
+        when(update.hasMessage()).thenReturn(true);
+        when(update.getMessage()).thenReturn(message);
+        when(message.hasText()).thenReturn(false);
+
+        channel.consume(update);
+
+        verifyNoInteractions(agent, telegramClient);
+    }
+
+    @Test
+    void ignoresMessagesFromNullUsername() {
+        TelegramChannel channel = channel("allowed_user");
+        Update update = mock(Update.class);
+        Message message = mock(Message.class);
+        when(update.hasMessage()).thenReturn(true);
+        when(update.getMessage()).thenReturn(message);
+        when(message.hasText()).thenReturn(true);
+        when(message.getFrom()).thenReturn(null);
+
+        channel.consume(update);
+
+        verifyNoInteractions(agent, telegramClient);
+    }
+
     @Test
     void ignoresMessagesFromUnauthorizedUser() {
-        TelegramChannel telegramChannel = new TelegramChannel("token", "allowed_user", telegramClient, agent, new ChannelRegistry());
+        TelegramChannel channel = channel("allowed_user");
 
-        telegramChannel.consume(unauthorizedUpdateFrom("other_user"));
+        channel.consume(updateFromUnknownUser("other_user"));
 
-        verify(agent, never()).respondTo(anyString());
+        verify(agent, never()).respondTo(anyString(), anyString());
         verifyNoInteractions(telegramClient);
     }
 
+    // -----------------------------------------------------------------------
+    // Username matching
+    // -----------------------------------------------------------------------
+
     @Test
-    void respondsOnlyToConfiguredUsername() throws TelegramApiException {
-        TelegramChannel telegramChannel = new TelegramChannel("token", "@Allowed_User", telegramClient, agent, new ChannelRegistry());
-        when(agent.respondTo("hello")).thenReturn("hi");
+    void usernameMatchingIsCaseInsensitive() throws TelegramApiException {
+        TelegramChannel channel = channel("Allowed_User");
+        when(agent.respondTo(anyString(), anyString())).thenReturn("hi");
 
-        telegramChannel.consume(updateFrom("allowed_user", "hello", 42L));
+        channel.consume(updateFrom("allowed_user", "hello", 42L, null));
 
-        verify(agent).respondTo("hello");
-        verify(telegramClient).execute(argThat((SendMessage message) ->
-                "42".equals(message.getChatId()) && "hi".equals(message.getText())));
+        verify(agent).respondTo(anyString(), anyString());
     }
 
-    private Update updateFrom(String username, String text, long chatId) {
+    @Test
+    void stripsLeadingAtFromConfiguredUsername() throws TelegramApiException {
+        TelegramChannel channel = channel("@Allowed_User");
+        when(agent.respondTo(anyString(), anyString())).thenReturn("hi");
+
+        channel.consume(updateFrom("allowed_user", "hello", 42L, null));
+
+        verify(agent).respondTo(anyString(), anyString());
+    }
+
+    @Test
+    void stripsLeadingAtFromIncomingUsername() throws TelegramApiException {
+        TelegramChannel channel = channel("allowed_user");
+        when(agent.respondTo(anyString(), anyString())).thenReturn("hi");
+
+        channel.consume(updateFrom("@allowed_user", "hello", 42L, null));
+
+        verify(agent).respondTo(anyString(), anyString());
+    }
+
+    // -----------------------------------------------------------------------
+    // Conversation ID and SendMessage
+    // -----------------------------------------------------------------------
+
+    @Test
+    void usesChannelChatIdAsConversationId() throws TelegramApiException {
+        TelegramChannel channel = channel("allowed_user");
+        when(agent.respondTo(anyString(), anyString())).thenReturn("hi");
+
+        channel.consume(updateFrom("allowed_user", "hello", 42L, null));
+
+        verify(agent).respondTo(eq("telegram-42"), eq("hello"));
+    }
+
+    @Test
+    void includesMessageThreadIdInConversationId() throws TelegramApiException {
+        TelegramChannel channel = channel("allowed_user");
+        when(agent.respondTo(anyString(), anyString())).thenReturn("hi");
+
+        channel.consume(updateFrom("allowed_user", "hello", 42L, 567));
+
+        verify(agent).respondTo(eq("telegram-42-567"), eq("hello"));
+    }
+
+    @Test
+    void sendsAgentResponseToCorrectChatId() throws TelegramApiException {
+        TelegramChannel channel = channel("allowed_user");
+        when(agent.respondTo(anyString(), anyString())).thenReturn("hi");
+
+        channel.consume(updateFrom("allowed_user", "hello", 42L, null));
+
+        verify(telegramClient).execute(argThat((SendMessage msg) ->
+                "42".equals(msg.getChatId()) && "hi".equals(msg.getText())));
+    }
+
+    @Test
+    void passesMessageThreadIdToSendMessage() throws TelegramApiException {
+        TelegramChannel channel = channel("allowed_user");
+        when(agent.respondTo(anyString(), anyString())).thenReturn("hi");
+
+        channel.consume(updateFrom("allowed_user", "hello", 42L, 567));
+
+        verify(telegramClient).execute(argThat((SendMessage msg) ->
+                Integer.valueOf(567).equals(msg.getMessageThreadId())));
+    }
+
+    @Test
+    void doesNotSetMessageThreadIdWhenAbsent() throws TelegramApiException {
+        TelegramChannel channel = channel("allowed_user");
+        when(agent.respondTo(anyString(), anyString())).thenReturn("hi");
+
+        channel.consume(updateFrom("allowed_user", "hello", 42L, null));
+
+        verify(telegramClient).execute(argThat((SendMessage msg) ->
+                msg.getMessageThreadId() == null));
+    }
+
+    // -----------------------------------------------------------------------
+    // sendMessage fallback
+    // -----------------------------------------------------------------------
+
+    @Test
+    void sendMessageDoesNothingWhenNoChatIdKnown() {
+        TelegramChannel channel = channel("allowed_user");
+
+        // No message has been consumed yet, so chatId is unknown
+        channel.sendMessage("hello");
+
+        verifyNoInteractions(telegramClient);
+    }
+
+    // -----------------------------------------------------------------------
+    // helpers
+    // -----------------------------------------------------------------------
+
+    private TelegramChannel channel(String allowedUsername) {
+        return new TelegramChannel("token", allowedUsername, telegramClient, agent, new ChannelRegistry());
+    }
+
+    private Update updateFromUnknownUser(String username) {
+        Update update = mock(Update.class);
+        Message message = mock(Message.class);
+        User user = mock(User.class);
+        when(update.hasMessage()).thenReturn(true);
+        when(update.getMessage()).thenReturn(message);
+        when(message.hasText()).thenReturn(true);
+        when(message.getFrom()).thenReturn(user);
+        when(user.getUserName()).thenReturn(username);
+        return update;
+    }
+
+    private Update updateFrom(String username, String text, long chatId, Integer messageThreadId) {
         Update update = mock(Update.class);
         Message message = mock(Message.class);
         User user = mock(User.class);
@@ -62,20 +220,7 @@ class TelegramChannelTest {
         when(message.hasText()).thenReturn(true);
         when(message.getText()).thenReturn(text);
         when(message.getChatId()).thenReturn(chatId);
-        when(message.getFrom()).thenReturn(user);
-        when(user.getUserName()).thenReturn(username);
-
-        return update;
-    }
-
-    private Update unauthorizedUpdateFrom(String username) {
-        Update update = mock(Update.class);
-        Message message = mock(Message.class);
-        User user = mock(User.class);
-
-        when(update.hasMessage()).thenReturn(true);
-        when(update.getMessage()).thenReturn(message);
-        when(message.hasText()).thenReturn(true);
+        when(message.getMessageThreadId()).thenReturn(messageThreadId);
         when(message.getFrom()).thenReturn(user);
         when(user.getUserName()).thenReturn(username);
 

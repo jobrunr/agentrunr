@@ -130,6 +130,12 @@ Key properties in `application.yaml`:
 
 Tests cover task management (file naming, JobRunr integration), Telegram channel authorization, and the full Spring context.
 
+## More info?
+
+[Release Demo Video](https://www.youtube.com/watch?v=_n9PcR9SceQ)
+[Website](https://clawrunr.io/)
+[Release Blog post](https://www.jobrunr.io/en/blog/clawrunr/)
+
 ## License
 
-This project is open-source. See LICENSE](license.md) for details.
+This project is open-source. See [LICENSE](license.md) for details.

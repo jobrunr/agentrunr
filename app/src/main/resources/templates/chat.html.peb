@@ -139,6 +139,16 @@
     align-self: flex-end;
     box-shadow: 0 3px 12px color-mix(in srgb, var(--bulma-primary) 45%, transparent);
 }
+
+.chat-readonly-notice {
+    color: rgba(180, 195, 235, .45);
+    font-size: .875rem;
+    text-align: center;
+    padding: .4rem 0;
+}
+.chat-readonly-notice strong {
+    color: rgba(180, 195, 235, .7);
+}
 </style>
 {% endblock %}
 
@@ -154,6 +164,9 @@
             </span>
         </div>
         <div class="navbar-end">
+            <div class="navbar-item">
+                <div class="select is-small is-dark" id="channel-selector"></div>
+            </div>
             <div class="navbar-item">
                 <a href="/onboarding" class="button is-small is-dark">
                     <span>Settings</span>
@@ -173,18 +186,15 @@
     <div class="chat-body">
         <div class="container">
             <div id="chat-messages">
-                <article class="ar-msg ar-msg--agent">
-                    <div class="ar-msg__avatar">JC</div>
-                    <div class="ar-msg__bubble">Hi! I'm your JavaClaw assistant. How can I help you today?</div>
-                </article>
             </div>
             <div id="typing-indicator"></div>
         </div>
     </div>
 
     <div class="chat-footer">
-        <div class="container">
-            <form id="chat-form" ws-send hx-boost="false">
+        <div class="container" id="chat-input-area">
+            <form id="chat-form" ws-send hx-boost="false"
+                  hx-vals='js:{"type": "userMessage", "conversationId": document.getElementById("channel-select") ? document.getElementById("channel-select").value : "web"}'>
                 <div class="field is-grouped" style="align-items: flex-end; margin: 0;">
                     <div class="control is-expanded">
                         <textarea id="message-input" class="textarea" name="message" rows="1"
@@ -217,32 +227,36 @@
 // form reset (hx-on:htmx:wsAfterSend), and Enter-to-send (hx-trigger on textarea).
 // JS handles only what htmx cannot: updating two separate DOM nodes from one WS event.
 (function () {
-    const textarea   = document.getElementById('message-input');
-    const sendBtn    = document.getElementById('send-btn');
     const statusTag  = document.getElementById('status-tag');
 
     document.body.addEventListener('htmx:wsOpen', function () {
         statusTag.className = 'tag is-success is-light is-rounded';
         statusTag.textContent = 'Connected';
-        textarea.disabled = false; sendBtn.disabled = false;
+        var ta = document.getElementById('message-input');
+        var btn = document.getElementById('send-btn');
+        if (ta) ta.disabled = false;
+        if (btn) btn.disabled = false;
     });
     document.body.addEventListener('htmx:wsClose', function () {
         statusTag.className = 'tag is-warning is-light is-rounded';
         statusTag.textContent = 'Reconnecting…';
-        textarea.disabled = true; sendBtn.disabled = true;
+        var ta = document.getElementById('message-input');
+        var btn = document.getElementById('send-btn');
+        if (ta) ta.disabled = true;
+        if (btn) btn.disabled = true;
     });
     document.body.addEventListener('htmx:wsError', function () {
         statusTag.className = 'tag is-danger is-light is-rounded';
         statusTag.textContent = 'Connection error';
     });
-    textarea.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
+    document.body.addEventListener('keydown', function (e) {
+        if (e.target.id === 'message-input' && e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
         }
     });
     document.body.addEventListener('htmx:wsAfterSend', function () {
-        textarea.value = '';
-        textarea.style.height = '';
+        var ta = document.getElementById('message-input');
+        if (ta) { ta.value = ''; ta.style.height = ''; }
     });
     document.body.addEventListener('htmx:wsAfterMessage', function () {
         var body = document.querySelector('.chat-body');

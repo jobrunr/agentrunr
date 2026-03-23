@@ -9,7 +9,6 @@ import org.springframework.ai.chat.client.advisor.api.BaseAdvisor;
 import org.springframework.ai.chat.client.advisor.api.BaseChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.util.Assert;
@@ -18,7 +17,9 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedSet;
 
 /**
  * A copy of Springs MessageChatMemoryAdvisor that does not add duplicate messages from memory if they are contained in the chatClientRequest.prompt().getInstructions()
@@ -59,20 +60,10 @@ public final class MessageChatMemoryAdvisor implements BaseChatMemoryAdvisor {
 
         List<Message> instructions = chatClientRequest.prompt().getInstructions();
 
-        // 2.1. Ensure system message, if present, appears first in the list.
-        // 2.1. Check if the instructions already contain conversation history
-        // (e.g., when ToolCallAdvisor provides the full history in subsequent
-        // tool call iterations). In that case, skip prepending memory to avoid
-        // message duplication.
-        boolean instructionsContainHistory = instructions.stream().anyMatch(msg -> msg instanceof AssistantMessage);
-
-        List<Message> processedMessages;
-        if (instructionsContainHistory) {
-            processedMessages = new ArrayList<>(instructions);
-        } else {
-            processedMessages = new ArrayList<>(this.chatMemory.get(conversationId));
-            processedMessages.addAll(instructions);
-        }
+        // 1. Remove duplicated messages by means of LinkedHashSet
+        SequencedSet<Message> allMessages = new LinkedHashSet<>(this.chatMemory.get(conversationId));
+        allMessages.addAll(instructions);
+        List<Message> processedMessages = new ArrayList<>(allMessages);
 
         // 2.1. Ensure system message, if present, appears first in the list.
         for (int i = 0; i < processedMessages.size(); i++) {

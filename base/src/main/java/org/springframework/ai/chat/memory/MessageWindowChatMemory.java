@@ -5,21 +5,23 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.util.Assert;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.SequencedSet;
 
 /**
- * A copy of Spring's MessageWindowChatMemory that keeps the order of the messages
+ * A copy of Spring's MessageWindowChatMemory that:
+ * - keeps the order of the messages (changed HashSet to LinkedHashSet)
+ * - returns a windowed view instead of all messages instead of only keeping the last x messages in the repository
+ * <p>
+ * See https://github.com/spring-projects/spring-ai/blob/019267f/spring-ai-model/src/main/java/org/springframework/ai/chat/memory/MessageWindowChatMemory.java
  */
 public class MessageWindowChatMemory implements ChatMemory {
     private static final int DEFAULT_MAX_MESSAGES = 20;
 
-    private final ChatMemoryRepository chatMemoryRepository;
+    private final AppendableChatMemoryRepository chatMemoryRepository;
 
     private final int maxMessages;
 
-    private MessageWindowChatMemory(ChatMemoryRepository chatMemoryRepository, int maxMessages) {
+    private MessageWindowChatMemory(AppendableChatMemoryRepository chatMemoryRepository, int maxMessages) {
         Assert.notNull(chatMemoryRepository, "chatMemoryRepository cannot be null");
         Assert.isTrue(maxMessages > 0, "maxMessages must be greater than 0");
         this.chatMemoryRepository = chatMemoryRepository;
@@ -32,15 +34,14 @@ public class MessageWindowChatMemory implements ChatMemory {
         Assert.notNull(messages, "messages cannot be null");
         Assert.noNullElements(messages, "messages cannot contain null elements");
 
-        List<Message> memoryMessages = this.chatMemoryRepository.findByConversationId(conversationId);
-        List<Message> processedMessages = process(memoryMessages, messages);
-        this.chatMemoryRepository.saveAll(conversationId, processedMessages);
+        this.chatMemoryRepository.appendAll(conversationId, messages);
     }
 
     @Override
     public List<Message> get(String conversationId) {
         Assert.hasText(conversationId, "conversationId cannot be null or empty");
-        return this.chatMemoryRepository.findByConversationId(conversationId);
+        List<Message> allMessages = this.chatMemoryRepository.findByConversationId(conversationId);
+        return window(allMessages);
     }
 
     @Override
@@ -49,37 +50,25 @@ public class MessageWindowChatMemory implements ChatMemory {
         this.chatMemoryRepository.deleteByConversationId(conversationId);
     }
 
-    private List<Message> process(List<Message> memoryMessages, List<Message> newMessages) {
-        List<Message> processedMessages = new ArrayList<>();
+    private List<Message> window(List<Message> messages) {
+        if (messages.size() <= this.maxMessages) {
+            return messages;
+        }
 
-        SequencedSet<Message> memoryMessagesSet = new LinkedHashSet<>(memoryMessages);
-        boolean hasNewSystemMessage = newMessages.stream()
+        List<Message> systemMessages = messages.stream()
                 .filter(SystemMessage.class::isInstance)
-                .anyMatch(message -> !memoryMessagesSet.contains(message));
+                .toList();
+        List<Message> nonSystemMessages = messages.stream()
+                .filter(m -> !(m instanceof SystemMessage))
+                .toList();
 
-        memoryMessages.stream()
-                .filter(message -> !(hasNewSystemMessage && message instanceof SystemMessage))
-                .forEach(processedMessages::add);
+        int maxNonSystem = Math.max(0, this.maxMessages - systemMessages.size());
+        List<Message> windowedNonSystem = nonSystemMessages.subList(
+                Math.max(0, nonSystemMessages.size() - maxNonSystem), nonSystemMessages.size());
 
-        processedMessages.addAll(newMessages);
-
-        if (processedMessages.size() <= this.maxMessages) {
-            return processedMessages;
-        }
-
-        int messagesToRemove = processedMessages.size() - this.maxMessages;
-
-        List<Message> trimmedMessages = new ArrayList<>();
-        int removed = 0;
-        for (Message message : processedMessages) {
-            if (message instanceof SystemMessage || removed >= messagesToRemove) {
-                trimmedMessages.add(message);
-            } else {
-                removed++;
-            }
-        }
-
-        return trimmedMessages;
+        List<Message> result = new ArrayList<>(systemMessages);
+        result.addAll(windowedNonSystem);
+        return result;
     }
 
     public static Builder builder() {
@@ -106,8 +95,47 @@ public class MessageWindowChatMemory implements ChatMemory {
         }
 
         public MessageWindowChatMemory build() {
-            return new MessageWindowChatMemory(this.chatMemoryRepository, this.maxMessages);
+            return new MessageWindowChatMemory(new DelegatingAppendableChatMemoryRepository(this.chatMemoryRepository), this.maxMessages);
         }
 
+    }
+
+    private static class DelegatingAppendableChatMemoryRepository implements AppendableChatMemoryRepository {
+
+        private final ChatMemoryRepository chatMemoryRepository;
+
+        public DelegatingAppendableChatMemoryRepository(ChatMemoryRepository chatMemoryRepository) {
+            this.chatMemoryRepository = chatMemoryRepository;
+        }
+
+        @Override
+        public List<String> findConversationIds() {
+            return chatMemoryRepository.findConversationIds();
+        }
+
+        @Override
+        public List<Message> findByConversationId(String conversationId) {
+            return chatMemoryRepository.findByConversationId(conversationId);
+        }
+
+        @Override
+        public void saveAll(String conversationId, List<Message> messages) {
+            chatMemoryRepository.saveAll(conversationId, messages);
+        }
+
+        @Override
+        public void appendAll(String conversationId, List<Message> messages) {
+            if (chatMemoryRepository instanceof AppendableChatMemoryRepository appendableChatMemoryRepository) {
+                appendableChatMemoryRepository.appendAll(conversationId, messages);
+            } else {
+                List<Message> allMessages = new ArrayList<>();
+                allMessages.addAll(findByConversationId(conversationId));
+                allMessages.addAll(messages);
+                saveAll(conversationId, allMessages);
+            }
+        }
+
+        @Override
+        public void deleteByConversationId(String conversationId) {chatMemoryRepository.deleteByConversationId(conversationId);}
     }
 }
