@@ -43,8 +43,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String inputArea = ChatHtml.chatInputArea(selectedId);
         session.sendMessage(new TextMessage(
                 Htmx.oobInnerHtml("channel-selector", selector) +
-                Htmx.oobInnerHtml("chat-messages", bubbles) +
-                Htmx.oobInnerHtml("chat-input-area", inputArea)
+                        Htmx.oobInnerHtml("chat-messages", bubbles) +
+                        Htmx.oobInnerHtml("chat-input-area", inputArea)
         ));
     }
 
@@ -75,7 +75,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String inputArea = ChatHtml.chatInputArea(conversationId);
         chatChannel.sendHtml(
                 Htmx.oobInnerHtml("chat-messages", bubbles) +
-                Htmx.oobInnerHtml("chat-input-area", inputArea)
+                        Htmx.oobInnerHtml("chat-input-area", inputArea)
         );
     }
 
@@ -90,16 +90,36 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         // Echo user message + show typing indicator
         chatChannel.sendHtml(
                 Htmx.oobAppend("chat-messages", ChatHtml.userBubble(userMessage)) +
-                Htmx.oobReplace("typing-indicator", ChatHtml.typingDots())
+                        Htmx.oobReplace("typing-indicator", ChatHtml.typingDots())
         );
 
-        // Call agent (blocking — background tasks may push messages via ChatChannel during this)
-        String response = chatChannel.chat(conversationId, userMessage);
+        String bubbleHtml;
+        try {
+            // Call agent (blocking — background tasks may push messages via ChatChannel during this)
+            String response = chatChannel.chat(conversationId, userMessage);
+            bubbleHtml = ChatHtml.agentBubble(response);
+        }  catch (RuntimeException ex) {
+            log.warn("Chat request failed for conversation {}", conversationId, ex);
+            bubbleHtml = ChatHtml.agentBubble(genericUserFacingError(ex));
+        }
 
-        // Send agent response + clear typing indicator
+        // Send agent response or error + clear typing indicator
         chatChannel.sendHtml(
-                Htmx.oobAppend("chat-messages", ChatHtml.agentBubble(response)) +
-                Htmx.oobReplace("typing-indicator", "")
+                Htmx.oobAppend("chat-messages", bubbleHtml) +
+                        Htmx.oobReplace("typing-indicator", "")
         );
+    }
+
+    private static String genericUserFacingError(RuntimeException ex) {
+        return "An error occurred while contacting the AI provider.\nDetails: " + summarizeError(ex);
+    }
+
+    private static String summarizeError(Throwable ex) {
+        String message = ex.getMessage();
+        if (message == null || message.isBlank()) {
+            return ex.getClass().getSimpleName();
+        }
+
+        return message;
     }
 }
