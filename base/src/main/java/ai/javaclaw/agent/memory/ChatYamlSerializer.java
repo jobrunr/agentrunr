@@ -6,7 +6,6 @@ import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.util.ObjectUtils;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -15,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Serialises and deserialises a list of Spring AI {@link Message} objects to/from
@@ -68,7 +68,7 @@ class ChatYamlSerializer {
     static String serialize(List<Message> messages) {
         List<Map<String, Object>> entries = messages.stream()
                 .filter(msg -> PERSISTABLE_MESSAGES.contains(msg.getMessageType()))
-                .flatMap(msg -> toEntries(msg).stream())
+                .flatMap(ChatYamlSerializer::toYamlEntries)
                 .collect(Collectors.toList());
 
         DumperOptions options = new DumperOptions();
@@ -77,46 +77,46 @@ class ChatYamlSerializer {
         return new Yaml(options).dump(entries);
     }
 
-    private static List<Map<String, Object>> toEntries(Message msg) {
-        if (msg instanceof AssistantMessage assistantMsg && assistantMsg.hasToolCalls()) {
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("role", "assistant");
-            if (assistantMsg.getText() != null && !assistantMsg.getText().isBlank()) {
-                entry.put("content", assistantMsg.getText());
-            }
-            List<Map<String, String>> toolCallList = assistantMsg.getToolCalls().stream()
-                    .map(tc -> {
-                        Map<String, String> tcMap = new LinkedHashMap<>();
-                        tcMap.put("id", tc.id());
-                        tcMap.put("type", tc.type());
-                        tcMap.put("function", tc.name());
-                        tcMap.put("arguments", tc.arguments());
-                        return tcMap;
-                    })
-                    .collect(Collectors.toList());
-            entry.put("tool_calls", toolCallList);
-            return List.of(entry);
+    private static Stream<Map<String, Object>> toYamlEntries(Message msg) {
+        if (msg instanceof AssistantMessage am && am.hasToolCalls()) {
+            return Stream.of(toAssistantToolCallYamlEntry(am));
         }
-        if (msg instanceof ToolResponseMessage toolMsg) {
-            return toolMsg.getResponses().stream()
-                    .map(tr -> {
-                        Map<String, Object> entry = new LinkedHashMap<>();
-                        entry.put("role", "tool");
-                        entry.put("tool_call_id", tr.id());
-                        entry.put("name", tr.name());
-                        entry.put("content", tr.responseData());
-                        return entry;
-                    })
-                    .collect(Collectors.toList());
+        if (msg instanceof ToolResponseMessage trm) {
+            return trm.getResponses().stream().map(ChatYamlSerializer::toToolResponseYamlEntry);
         }
-        // USER, ASSISTANT (text only), SYSTEM
-        if (msg.getText() == null) {
-            return List.of();
-        }
+        if (msg.getText() == null) return Stream.empty();
         Map<String, Object> entry = new LinkedHashMap<>();
         entry.put("role", msg.getMessageType().getValue());
         entry.put("content", msg.getText());
-        return List.of(entry);
+        return Stream.of(entry);
+    }
+
+    private static Map<String, Object> toAssistantToolCallYamlEntry(AssistantMessage msg) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("role", "assistant");
+        if (msg.getText() != null && !msg.getText().isBlank()) entry.put("content", msg.getText());
+        entry.put("tool_calls", msg.getToolCalls().stream()
+                .map(ChatYamlSerializer::toToolCallYamlEntry)
+                .collect(Collectors.toList()));
+        return entry;
+    }
+
+    private static Map<String, String> toToolCallYamlEntry(AssistantMessage.ToolCall tc) {
+        Map<String, String> map = new LinkedHashMap<>();
+        map.put("id", tc.id());
+        map.put("type", tc.type());
+        map.put("function", tc.name());
+        map.put("arguments", tc.arguments());
+        return map;
+    }
+
+    private static Map<String, Object> toToolResponseYamlEntry(ToolResponseMessage.ToolResponse tr) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("role", "tool");
+        entry.put("tool_call_id", tr.id());
+        entry.put("name", tr.name());
+        entry.put("content", tr.responseData());
+        return entry;
     }
 
     private static Message toMessage(Map<String, Object> entry) {
@@ -142,17 +142,21 @@ class ChatYamlSerializer {
         if (rawToolCalls == null || rawToolCalls.isEmpty()) {
             return new AssistantMessage(content != null ? content : "");
         }
-        List<AssistantMessage.ToolCall> toolCalls = rawToolCalls.stream()
-                .map(tc -> new AssistantMessage.ToolCall(
-                        tc.get("id"),
-                        tc.getOrDefault("type", "function"),
-                        tc.get("function"),
-                        tc.get("arguments")))
-                .collect(Collectors.toList());
+        List<AssistantMessage.ToolCall> toolCalls = toAssistantToolCalls(rawToolCalls);
         return AssistantMessage.builder()
                 .content(content != null ? content : "")
                 .toolCalls(toolCalls)
                 .build();
+    }
+
+    private static List<AssistantMessage.ToolCall> toAssistantToolCalls(List<Map<String, String>> rawToolCalls) {
+        return rawToolCalls.stream()
+            .map(tc -> new AssistantMessage.ToolCall(
+                tc.get("id"),
+                tc.getOrDefault("type", "function"),
+                tc.get("function"),
+                tc.get("arguments")))
+            .collect(Collectors.toList());
     }
 
     private static ToolResponseMessage toToolMessage(Map<String, Object> entry) {

@@ -26,7 +26,7 @@ import java.util.SequencedSet;
 import java.util.stream.Collectors;
 
 /**
- * A copy of Springs MessageChatMemoryAdvisor that does not add duplicate messages from memory if they are contained in the chatClientRequest.prompt().getInstructions()
+ * A copy of Spring's MessageChatMemoryAdvisor that does not add duplicate messages from memory if they are contained in the chatClientRequest.prompt().getInstructions()
  */
 public final class MessageChatMemoryAdvisor implements BaseChatMemoryAdvisor {
 
@@ -131,7 +131,7 @@ public final class MessageChatMemoryAdvisor implements BaseChatMemoryAdvisor {
     static List<Message> deduplicate(List<Message> memoryMessages, List<Message> instructions) {
         SequencedSet<MessageWrapper> seen = new LinkedHashSet<>(memoryMessages.stream().map(MessageWrapper::new).toList());
         instructions.stream().map(MessageWrapper::new).forEach(seen::add);
-        return seen.stream().map(MessageWrapper::message).collect(Collectors.toList());
+        return seen.stream().map(MessageWrapper::message).toList();
     }
 
     /**

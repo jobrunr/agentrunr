@@ -40,15 +40,11 @@ public class ChatHtml {
         }
         return """
                 <div class="ar-thinking">
-                    <div class="ar-msg__avatar">JC</div>
-                    <div class="ar-thinking__body">
-                        <button class="ar-thinking__toggle"
-                                onclick="var b=this.closest('.ar-thinking').querySelector('.ar-thinking__steps');b.classList.toggle('is-open');this.classList.toggle('is-open');">
-                            <span class="ar-thinking__chevron">&#9654;</span> %s
-                        </button>
+                    <details class="ar-thinking__body">
+                        <summary class="ar-thinking__toggle">%s</summary>
                         <div class="ar-thinking__steps">%s</div>
-                    </div>
-                </div>""".formatted(HtmlUtils.htmlEscape(label), stepsHtml);
+                    </details>
+                </div>""".formatted(label, stepsHtml);
     }
 
     public static String agentBubble(String text) {

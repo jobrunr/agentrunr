@@ -152,11 +152,9 @@
 
 /* Thinking row — shown above the agent bubble when tool calls were made */
 .ar-thinking {
-    display: flex;
-    align-items: flex-start;
-    gap: .55rem;
     align-self: flex-start;
     max-width: 76%;
+    padding-left: calc(30px + .55rem);
     animation: msg-in .22s cubic-bezier(.22, 1, .36, 1);
 }
 
@@ -179,24 +177,25 @@
     align-items: center;
     gap: .3rem;
     border-radius: .3rem;
+    list-style: none;
+    user-select: none;
 }
-.ar-thinking__toggle:hover { color: rgba(160, 180, 225, .8); }
-.ar-thinking__toggle.is-open { color: rgba(160, 180, 225, .9); }
-
-.ar-thinking__chevron {
+.ar-thinking__toggle::-webkit-details-marker { display: none; }
+.ar-thinking__toggle::before {
+    content: "\25BA";
     font-size: .6rem;
-    transition: transform .2s;
     display: inline-block;
+    transition: transform .2s;
 }
-.ar-thinking__toggle.is-open .ar-thinking__chevron { transform: rotate(90deg); }
+.ar-thinking__body[open] > .ar-thinking__toggle::before { transform: rotate(90deg); }
+.ar-thinking__toggle:hover { color: rgba(160, 180, 225, .8); }
+.ar-thinking__body[open] > .ar-thinking__toggle { color: rgba(160, 180, 225, .9); }
 
-/* Expandable steps list */
 .ar-thinking__steps {
-    display: none;
+    display: flex;
     flex-direction: column;
     gap: .35rem;
 }
-.ar-thinking__steps.is-open { display: flex; }
 
 .ar-thinking__step {
     font-size: .78rem;
@@ -222,7 +221,7 @@
 .ar-thinking__step > summary::-webkit-details-marker { display: none; }
 .ar-thinking__step > summary::before {
     content: "\25BA";
-    font-size: .55rem;
+    font-size: .58rem;
     display: inline-block;
     transition: transform .2s;
     flex-shrink: 0;
