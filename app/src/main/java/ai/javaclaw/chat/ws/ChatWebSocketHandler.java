@@ -5,6 +5,7 @@ import ai.javaclaw.chat.ChatHtml;
 import ai.javaclaw.chat.Htmx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -93,13 +94,33 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 Htmx.oobReplace("typing-indicator", ChatHtml.typingDots())
         );
 
-        // Call agent (blocking — background tasks may push messages via ChatChannel during this)
-        String response = chatChannel.chat(conversationId, userMessage);
+        String bubbleHtml;
+        try {
+            // Call agent (blocking — background tasks may push messages via ChatChannel during this)
+            String response = chatChannel.chat(conversationId, userMessage);
+            bubbleHtml = ChatHtml.agentBubble(response);
+        }  catch (RuntimeException ex) {
+            log.warn("Chat request failed for conversation {}", conversationId, ex);
+            bubbleHtml = ChatHtml.agentBubble(genericUserFacingError(ex));
+        }
 
-        // Send agent response + clear typing indicator
+        // Send agent response or error + clear typing indicator
         chatChannel.sendHtml(
-                Htmx.oobAppend("chat-messages", ChatHtml.agentBubble(response)) +
+                Htmx.oobAppend("chat-messages", bubbleHtml) +
                 Htmx.oobReplace("typing-indicator", "")
         );
+    }
+
+    private static String genericUserFacingError(RuntimeException ex) {
+        return "An error occurred while contacting the AI provider.\nDetails: " + summarizeError(ex);
+    }
+
+    private static String summarizeError(Throwable ex) {
+        String message = ex.getMessage();
+        if (message == null || message.isBlank()) {
+            return ex.getClass().getSimpleName();
+        }
+
+        return message;
     }
 }
