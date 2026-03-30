@@ -1,6 +1,7 @@
 plugins {
     id 'java-library'
     id 'org.springframework.boot'
+    id 'com.google.cloud.tools.jib' version '3.5.3'
 }
 
 dependencies {
@@ -33,4 +34,22 @@ dependencies {
 
 bootRun {
     workingDir = rootProject.projectDir
+}
+
+jib {
+    to {
+        image = 'jobrunr.io/javaclaw'
+        tags = ['latest']
+    }
+    extraDirectories {
+        paths {
+            path {
+                from = rootProject.file('workspace')
+                into = '/workspace'
+            }
+            permissions = [
+                    '/workspace': '755'
+            ]
+        }
+    }
 }
