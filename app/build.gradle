@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     implementation project(':base')
+    implementation project(':plugins:discord')
     implementation project(':plugins:telegram')
     implementation project(':plugins:playwright')
     implementation project(':plugins:brave')
