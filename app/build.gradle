@@ -6,6 +6,11 @@ plugins {
 
 dependencies {
     implementation project(':base')
+    implementation project(':providers:anthropic')
+    implementation project(':providers:google')
+    implementation project(':providers:ollama')
+    implementation project(':providers:openai')
+
     implementation project(':plugins:telegram')
     implementation project(':plugins:playwright')
     implementation project(':plugins:brave')
