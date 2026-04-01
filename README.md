@@ -55,6 +55,12 @@ JavaClaw/
 ./gradlew :app:bootRun
 ```
 
+You can also build a docker image and use it as follows (from the cloned repo):
+```bash
+./gradlew app:jibDockerBuild
+docker run -it -p 8080:8080 -p:8081:8081 -v "$(pwd)/workspace:/workspace" jobrunr.io/javaclaw
+```
+
 Then open [http://localhost:8080/onboarding](http://localhost:8080/onboarding) to complete the guided onboarding.
 
 ### Onboarding (7 Steps)
