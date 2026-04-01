@@ -18,6 +18,7 @@ This project represents a Java version of OpenClaw. OpenClaw is an open-source, 
 - **Agent Framework:** Spring AI Agent Utils (Anthropic agent framework)
 - **Database:** H2 (embedded)
 - **Templating:** Pebble 4.1.1
+- **Discord:** JDA 6.1.1 (Gateway / WebSocket)
 - **Telegram:** Telegrambots 9.4.0 (long-polling)
 
 ---
@@ -28,11 +29,14 @@ This project represents a Java version of OpenClaw. OpenClaw is an open-source, 
 root
 ├── base/           ← Core: agent, tasks, tools, channels, config
 ├── app/            ← Spring Boot entry point, onboarding UI, web routes, chat channel
-└── channels/
+└── plugins/
+    ├── brave/      ← Brave web search integration
+    ├── discord/    ← Discord Gateway channel
+    ├── playwright/ ← Browser automation tools
     └── telegram/   ← Telegram long-poll channel
 ```
 
-`app` depends on `base` + `channels:telegram`. `ChatChannel` lives inside `app/`.
+`app` depends on `base` plus plugin modules. `ChatChannel` lives inside `app/`.
 
 ---
 
@@ -112,6 +116,7 @@ Incoming message → ChannelMessageReceivedEvent (channel name, message text)
 ```
 
 - **`ChannelRegistry`**: Registers channels, tracks last-active channel so background task replies are routed correctly.
+- **`DiscordChannel`**: JDA `ListenerAdapter`; accepts DMs from the configured user and guild messages only when the bot is mentioned.
 - **`TelegramChannel`**: `SpringLongPollingBot`; filters by `allowedUsername`; stores `chatId` for routing background replies.
 - **`ChatChannel`**: WebSocket-first delivery (`setWsSession()`/`clearWsSession()`); falls back to buffering replies in `ConcurrentLinkedQueue` exposed via `drainPendingMessages()` REST endpoint when no WebSocket session is active.
 
@@ -136,7 +141,7 @@ Incoming message → ChannelMessageReceivedEvent (channel name, message text)
 - **Web:** Search (Brave API) and smart web fetching.
 - **MCP:** Support for Model Context Protocol tools (via `SyncMcpToolCallbackProvider`).
 - **Skills:** Custom modular skills loaded from `workspace/skills/` at runtime.
-- **Channels:** Telegram (implemented), Chat (implemented).
+- **Channels:** Chat, Telegram, and Discord are implemented.
 
 ---
 
@@ -146,16 +151,16 @@ Incoming message → ChannelMessageReceivedEvent (channel name, message text)
 - **htmx v2.0.8 (https://htmx.org/docs/):** htmx is a strong fit for this app because it keeps the interaction model server-driven: the server returns HTML fragments, not JSON, and htmx swaps them into the DOM. We are using `hx-boost` which "boosts" normal anchors and form tags to use AJAX instead (preventing reloading of css and js). This has the nice fallback that, if the user does not have javascript enabled, the site will continue to work. Both Bulma and htmx are already included in `base.html.peb`.
 
 ### Onboarding UI
-Entry point: `GET /index` → `IndexController.java` (redirects to `/onboarding/`) → `OnboardingController.java`. 7-step session-based flow:
+Entry point: `GET /index` → `IndexController.java` (redirects to `/onboarding/`) → `OnboardingController.java`. Core onboarding flow:
 1. Welcome
 2. Provider selection (Ollama / OpenAI / Anthropic)
 3. Credentials (API key + model)
 4. `AGENT.md` editor (system prompt customization)
 5. MCP servers configuration (optional)
-6. Telegram bot token + allowed username (optional)
+6. Optional channel/tool plugin steps (for example Telegram and Discord)
 7. Complete summary
 
-Templates: `templates/onboarding/` (index + 7 step partials). Saves config via `ConfigurationManager.updateProperty()`.
+Templates live under `templates/onboarding/`, with plugin steps contributed from their own modules. Saves config via `ConfigurationManager.updateProperty()`.
 
 ---
 
@@ -165,7 +170,7 @@ Templates: `templates/onboarding/` (index + 7 step partials). Saves config via `
 |---|---|
 | **Event-Driven** | `ChannelMessageReceivedEvent`, `ConfigurationChangedEvent`, JobRunr background dispatch |
 | **Template Method** | `AbstractTask` subclassed by `Task`, `RecurringTask` |
-| **Strategy** | Multiple `Channel` implementations (Telegram, Chat) |
+| **Strategy** | Multiple `Channel` implementations (Discord, Telegram, Chat) |
 | **Record Types** | `TaskResult`, `CheckListItem` — structured LLM response types |
 | **Markdown as State** | Tasks stored as `.md` files — queryable, diffable, human-readable |
 | **Single Agent Instance** | `DefaultAgent` wraps `ChatClient`; all prompts routed through it |
@@ -176,5 +181,6 @@ Templates: `templates/onboarding/` (index + 7 step partials). Saves config via `
 ## Tests
 
 - `base/src/test/` — `TaskManagerTest`: task creation, file naming, JobRunr integration (in-memory storage + background server).
-- `channels/telegram/src/test/` — `TelegramChannelTest`: unauthorized user rejection, authorized message flow (mocked).
+- `plugins/discord/src/test/` — `DiscordChannelTest`, `DiscordOnboardingProviderTest`: authorized Discord flow + onboarding config handling.
+- `plugins/telegram/src/test/` — `TelegramChannelTest`: unauthorized user rejection, authorized message flow (mocked).
 - `app/src/test/` — `OnboardingControllerTest`: session-based workflow; `JavaClawApplicationTests`: full Spring context load with Testcontainers.
