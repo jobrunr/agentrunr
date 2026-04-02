@@ -31,7 +31,6 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
 
     private static final Parser MARKDOWN_PARSER = Parser.builder().build();
     private static final HtmlRenderer HTML_RENDERER = HtmlRenderer.builder()
-            .softbreak("<br />")
             .escapeHtml(true)
             .extensions(List.of(StrikethroughExtension.create()))
             .build();
@@ -132,12 +131,12 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
         String html = HTML_RENDERER.render(document);
 
         // Minimalist replacement logic to handle unsupported structural tags
-        return html.replace("<p>", "").replace("</p>", "<br />")
-                .replaceAll("(?s)<h[1-6]>(.*?)</h[1-6]>", "<b>$1</b><br />")
-                .replaceAll("(?s)<li>(.*?)</li>", "- $1<br />")
+        return html.replace("<p>", "").replace("</p>", "\n")
+                .replaceAll("(?s)<h[1-6]>(.*?)</h[1-6]>", "<b>$1</b>\n")
+                .replaceAll("(?s)<li>(.*?)</li>", "- $1\n")
                 .replace("<ul>", "").replace("</ul>", "")
                 .replace("<ol>", "").replace("</ol>", "")
-                .replace("<hr />", "<br />")
+                .replace("<hr />", "\n")
                 .trim();
     }
 

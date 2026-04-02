@@ -152,7 +152,7 @@ class TelegramChannelTest {
         channel.consume(updateFrom("allowed_user", "hello", 42L, null));
 
         verify(telegramClient).execute(argThat((SendMessage msg) ->
-                "42".equals(msg.getChatId()) && "hi<br />".equals(msg.getText())));
+                "42".equals(msg.getChatId()) && "hi".equals(msg.getText())));
     }
 
     @Test
@@ -205,7 +205,7 @@ class TelegramChannelTest {
 
         verify(telegramClient).execute(argThat((SendMessage msg) ->
                 ParseMode.HTML.equals(msg.getParseMode()) &&
-                        "Here is <strong>bold</strong> text and a <a href=\"https://example.com\">link</a><br />"
+                        "Here is <strong>bold</strong> text and a <a href=\"https://example.com\">link</a>"
                                 .equals(msg.getText())
         ));
     }
