@@ -5,6 +5,7 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.util.ObjectUtils;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -51,7 +52,7 @@ class ChatYamlSerializer {
 
     static String serialize(List<Message> messages) {
         List<Map<String, String>> entries = messages.stream()
-                .filter(msg -> PERSISTABLE_MESSAGES.contains(msg.getMessageType()) && msg.getText() != null)
+                .filter(msg -> PERSISTABLE_MESSAGES.contains(msg.getMessageType()) && !ObjectUtils.isEmpty(msg.getText()))
                 .map(msg -> {
                     Map<String, String> entry = new LinkedHashMap<>();
                     entry.put(msg.getMessageType().getValue(), msg.getText());
