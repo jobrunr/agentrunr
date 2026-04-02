@@ -4,6 +4,7 @@ import ai.javaclaw.agent.Agent;
 import ai.javaclaw.channels.Channel;
 import ai.javaclaw.channels.ChannelMessageReceivedEvent;
 import ai.javaclaw.channels.ChannelRegistry;
+import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
@@ -20,16 +21,19 @@ import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
+import java.util.List;
+
 import static java.util.Optional.ofNullable;
 
 public class TelegramChannel implements Channel, SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
 
-    private static final Logger log = LoggerFactory.getLogger(TelegramChannel.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TelegramChannel.class);
 
     private static final Parser MARKDOWN_PARSER = Parser.builder().build();
     private static final HtmlRenderer HTML_RENDERER = HtmlRenderer.builder()
             .softbreak("<br />")
             .escapeHtml(true)
+            .extensions(List.of(StrikethroughExtension.create()))
             .build();
 
     private final String botToken;
@@ -38,7 +42,6 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
     private final Agent agent;
     private final ChannelRegistry channelRegistry;
     private Long chatId;
-    private Integer messageThreadId;
 
     public TelegramChannel(String botToken, String allowedUsername, Agent agent, ChannelRegistry channelRegistry) {
         this(botToken, allowedUsername, new OkHttpTelegramClient(botToken), agent, channelRegistry);
@@ -51,7 +54,7 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
         this.agent = agent;
         this.channelRegistry = channelRegistry;
         channelRegistry.registerChannel(this);
-        log.info("Started Telegram integration");
+        LOGGER.info("Started Telegram integration");
     }
 
     @Override
@@ -71,14 +74,14 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
         Message requestMessage = update.getMessage();
         String userName = requestMessage.getFrom() == null ? null : requestMessage.getFrom().getUserName();
         if (!isAllowedUser(userName)) {
-            log.warn("Ignoring Telegram message from unauthorized username '{}'", userName);
+            LOGGER.warn("Ignoring Telegram message from unauthorized username '{}'", userName);
             sendMessage("I'm sorry, I don't accept instructions from you.");
             return;
         }
 
         String messageText = requestMessage.getText();
         this.chatId = requestMessage.getChatId();
-        this.messageThreadId = requestMessage.getMessageThreadId();
+        Integer messageThreadId = requestMessage.getMessageThreadId();
         channelRegistry.publishMessageReceivedEvent(new TelegramChannelMessageReceivedEvent(getName(), messageText, chatId, messageThreadId));
         String response = agent.respondTo(getConversationId(chatId, messageThreadId), messageText);
         sendMessage(chatId, messageThreadId, response);
@@ -87,7 +90,7 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
     @Override
     public void sendMessage(String message) {
         if (chatId == null) {
-            log.error("No known chatId, cannot send message '{}'", message);
+            LOGGER.error("No known chatId, cannot send message '{}'", message);
             return;
         }
         sendMessage(chatId, null, message);
@@ -106,13 +109,14 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
         try {
             telegramClient.execute(htmlMessage);
         } catch (TelegramApiException e) {
-            log.warn("Failed to send HTML parsed message, falling back to raw text. Error: {}", e.getMessage());
+            LOGGER.warn("Failed to send HTML parsed message, falling back to raw text.", e);
 
             SendMessage fallbackMessage = SendMessage.builder()
                     .chatId(chatId)
                     .messageThreadId(messageThreadId)
                     .text(message)
                     .build();
+
             try {
                 telegramClient.execute(fallbackMessage);
             } catch (TelegramApiException fallbackEx) {
@@ -133,12 +137,7 @@ public class TelegramChannel implements Channel, SpringLongPollingBot, LongPolli
                 .replaceAll("(?s)<li>(.*?)</li>", "- $1<br />")
                 .replace("<ul>", "").replace("</ul>", "")
                 .replace("<ol>", "").replace("</ol>", "")
-                .replaceAll("(?s)<th>(.*?)</th>", "<b>$1</b> | ")
-                .replaceAll("(?s)<td>(.*?)</td>", "$1 | ")
-                .replaceAll("(?s)<tr>(.*?)</tr>", "$1<br />")
-                .replace("<table>", "").replace("</table>", "")
-                .replace("<thead>", "").replace("</thead>", "")
-                .replace("<tbody>", "").replace("</tbody>", "")
+                .replace("<hr />", "<br />")
                 .trim();
     }
 
