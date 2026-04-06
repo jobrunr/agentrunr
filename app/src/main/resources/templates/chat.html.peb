@@ -165,7 +165,15 @@
         </div>
         <div class="navbar-end">
             <div class="navbar-item">
+                <div class="select is-small is-dark" id="agent-selector"></div>
+            </div>
+            <div class="navbar-item">
                 <div class="select is-small is-dark" id="channel-selector"></div>
+            </div>
+            <div class="navbar-item">
+                <a href="/agents" class="button is-small is-dark">
+                    <span>Agents</span>
+                </a>
             </div>
             <div class="navbar-item">
                 <a href="/onboarding" class="button is-small is-dark">
@@ -194,7 +202,7 @@
     <div class="chat-footer">
         <div class="container" id="chat-input-area">
             <form id="chat-form" ws-send hx-boost="false"
-                  hx-vals='js:{"type": "userMessage", "conversationId": document.getElementById("channel-select") ? document.getElementById("channel-select").value : "web"}'>
+                  hx-vals='js:{"type": "userMessage", "agentId": document.getElementById("agent-select") ? document.getElementById("agent-select").value : "", "conversationId": document.getElementById("channel-select") ? document.getElementById("channel-select").value : "web"}'>
                 <div class="field is-grouped" style="align-items: flex-end; margin: 0;">
                     <div class="control is-expanded">
                         <textarea id="message-input" class="textarea" name="message" rows="1"

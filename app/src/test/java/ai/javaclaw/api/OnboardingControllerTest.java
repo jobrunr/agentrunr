@@ -1,6 +1,7 @@
 package ai.javaclaw.api;
 
 import ai.javaclaw.configuration.ConfigurationManager;
+import ai.javaclaw.agents.AgentWorkspaceResolver;
 import ai.javaclaw.onboarding.AgentOnboardingProviders;
 import ai.javaclaw.onboarding.api.OnboardingController;
 import ai.javaclaw.onboarding.steps.S1_WelcomeStep;
@@ -32,6 +33,9 @@ class OnboardingControllerTest {
 
     @MockitoBean
     private AgentOnboardingProviders agentOnboardingProviders;
+
+    @MockitoBean
+    private AgentWorkspaceResolver agentWorkspaceResolver;
 
     @Test
     void providerSubmissionWithoutSelectionShowsFlashError() throws Exception {

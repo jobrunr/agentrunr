@@ -1,0 +1,127 @@
+{% extends "base" %}
+
+{% block title %} Agents{% endblock %}
+
+{% block head %}
+<style>
+.agents-shell {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(72, 199, 142, .14), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(50, 115, 220, .10), transparent 28%),
+        linear-gradient(180deg, #0f1419 0%, #151b21 100%);
+    color: #e8edf3;
+}
+
+.agents-shell .navbar {
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.agents-shell .card {
+    background: rgba(16, 22, 29, .86);
+    border: 1px solid rgba(255, 255, 255, .08);
+    box-shadow: 0 22px 50px rgba(0, 0, 0, .18);
+}
+
+.agents-shell .table {
+    background: transparent;
+    color: #dce4ee;
+}
+
+.agents-shell .table thead th {
+    color: rgba(220, 228, 238, .72);
+    border-color: rgba(255, 255, 255, .08);
+}
+
+.agents-shell .table td {
+    border-color: rgba(255, 255, 255, .06);
+    vertical-align: middle;
+}
+
+.agents-shell .tag.is-default {
+    background: rgba(72, 199, 142, .14);
+    color: #7ee2b2;
+    border: 1px solid rgba(72, 199, 142, .28);
+}
+
+.agents-shell code {
+    color: #d9f5e6;
+    background: rgba(255, 255, 255, .06);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section agents-shell">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <span class="navbar-item">
+                <div class="brand-lockup">
+                    <p class="brand-word"><span class="brand-agent">Java</span><span class="brand-runr">Claw</span></p>
+                </div>
+            </span>
+        </div>
+        <div class="navbar-end">
+            <div class="navbar-item">
+                <a href="/chat" class="button is-dark is-small">Chat</a>
+            </div>
+            <div class="navbar-item">
+                <a href="/onboarding" class="button is-primary is-small">Add Agent</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-6">
+        <div class="columns is-variable is-6">
+            <div class="column is-8">
+                <h1 class="title is-2 has-text-white mb-2">Agents</h1>
+                <p class="subtitle has-text-grey-light mb-0">Configured runtime agents, their provider, workspace, and which one is currently default.</p>
+            </div>
+        </div>
+
+        <div class="card mt-5">
+            <div class="card-content">
+                {% if hasAgents %}
+                <div class="table-container">
+                    <table class="table is-fullwidth is-hoverable">
+                        <thead>
+                        <tr>
+                            <th>Agent</th>
+                            <th>Provider</th>
+                            <th>Model</th>
+                            <th>Workspace</th>
+                            <th>Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for agent in agents %}
+                        <tr>
+                            <td><strong>{{ agent.id }}</strong></td>
+                            <td>{{ agent.provider }}</td>
+                            <td><code>{{ agent.model }}</code></td>
+                            <td><code>{{ agent.workspace }}</code></td>
+                            <td>
+                                {% if agent.isDefault %}
+                                <span class="tag is-rounded is-default">Default</span>
+                                {% else %}
+                                <span class="tag is-rounded is-dark">Secondary</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <article class="message is-warning is-dark">
+                    <div class="message-body">
+                        No runtime agents are configured yet. Start with onboarding to add the first one.
+                    </div>
+                </article>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

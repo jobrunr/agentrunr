@@ -28,5 +28,13 @@ public interface AgentOnboardingProvider {
         properties.put(createPropertyKey(propertySuffix), value);
     }
 
+    default Map<String, Object> runtimeModelProperties() {
+        return Map.of();
+    }
+
+    default boolean usesRuntimeRegistry() {
+        return false;
+    }
+
     record SystemWideToken(String name, String token) {}
 }

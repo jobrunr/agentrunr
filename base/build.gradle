@@ -14,6 +14,7 @@ dependencies {
 
     implementation 'org.springframework.ai:spring-ai-client-chat'
     implementation 'org.springframework.ai:spring-ai-starter-mcp-client'
+    implementation 'org.springframework.ai:spring-ai-openai'
 
     implementation 'org.springaicommunity:spring-ai-agent-utils:0.6.0-SNAPSHOT'
     implementation 'org.springaicommunity:tool-search-tool:2.0.1'

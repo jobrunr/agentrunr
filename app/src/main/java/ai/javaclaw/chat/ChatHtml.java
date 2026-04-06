@@ -34,11 +34,11 @@ public class ChatHtml {
                 </div>""";
     }
 
-    public static String chatInputArea(String conversationId) {
+    public static String chatInputArea(String agentId, String conversationId) {
         if ("web".equals(conversationId)) {
             return """
                     <form id="chat-form" ws-send hx-boost="false"
-                          hx-vals='js:{"type": "userMessage", "conversationId": document.getElementById("channel-select") ? document.getElementById("channel-select").value : "web"}'>
+                          hx-vals='js:{"type": "userMessage", "agentId": document.getElementById("agent-select") ? document.getElementById("agent-select").value : "%s", "conversationId": document.getElementById("channel-select") ? document.getElementById("channel-select").value : "web"}'>
                         <div class="field is-grouped" style="align-items: flex-end; margin: 0;">
                             <div class="control is-expanded">
                                 <textarea id="message-input" class="textarea" name="message" rows="1"
@@ -57,7 +57,7 @@ public class ChatHtml {
                                 </button>
                             </div>
                         </div>
-                    </form>""";
+                    </form>""".formatted(HtmlUtils.htmlEscape(agentId));
         }
         String label = HtmlUtils.htmlEscape(labelFor(conversationId));
         return """
@@ -70,11 +70,26 @@ public class ChatHtml {
         sb.append("""
                 <select id="channel-select" class="select" name="conversationId" \
                 ws-send hx-trigger="change" \
-                hx-vals='{"type": "channelChanged"}'>""");
+                hx-vals='js:{"type": "channelChanged", "agentId": document.getElementById("agent-select") ? document.getElementById("agent-select").value : ""}'>""");
         for (String id : ids) {
             sb.append("<option value=\"").append(HtmlUtils.htmlEscape(id)).append("\"");
             if (id.equals(selectedId)) sb.append(" selected");
             sb.append(">").append(HtmlUtils.htmlEscape(labelFor(id))).append("</option>");
+        }
+        sb.append("</select>");
+        return sb.toString();
+    }
+
+    public static String agentSelector(List<String> ids, String selectedId) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("""
+                <select id="agent-select" class="select" name="agentId" \
+                ws-send hx-trigger="change" \
+                hx-vals='{"type": "agentChanged"}'>""");
+        for (String id : ids) {
+            sb.append("<option value=\"").append(HtmlUtils.htmlEscape(id)).append("\"");
+            if (id.equals(selectedId)) sb.append(" selected");
+            sb.append(">").append(HtmlUtils.htmlEscape(id)).append("</option>");
         }
         sb.append("</select>");
         return sb.toString();

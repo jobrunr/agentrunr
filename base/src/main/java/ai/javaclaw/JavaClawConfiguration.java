@@ -42,7 +42,9 @@ import java.util.Set;
 @Configuration
 public class JavaClawConfiguration {
 
-    public static final String AGENT_MD = "AGENT.private.md";
+    public static final String AGENT_MD = "AGENT.md";
+    public static final String AGENT_PRIVATE_MD = "AGENT.private.md";
+    public static final String INFO_MD = "INFO.md";
 
     @Bean
     @ConditionalOnProperty(name = SpringAIModelProperties.CHAT_MODEL, havingValue = "unknown", matchIfMissing = true)

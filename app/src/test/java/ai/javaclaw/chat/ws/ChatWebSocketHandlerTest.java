@@ -15,7 +15,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class ChatWebSocketHandlerTest {
@@ -26,7 +25,8 @@ class ChatWebSocketHandlerTest {
         WebSocketSession session = mock(WebSocketSession.class);
         ChatWebSocketHandler handler = new ChatWebSocketHandler(chatChannel, new ObjectMapper());
 
-        when(chatChannel.chat("web", "hello")).thenThrow(new RuntimeException("""
+        when(chatChannel.defaultAgentId()).thenReturn("openai-main");
+        when(chatChannel.chat("openai-main", "web", "hello")).thenThrow(new RuntimeException("""
                 HTTP 401 - {
                     "error": {
                         "message": "Incorrect API key provided: Test.",
@@ -44,10 +44,8 @@ class ChatWebSocketHandlerTest {
         ArgumentCaptor<String[]> htmlCaptor = ArgumentCaptor.forClass(String[].class);
         var inOrder = inOrder(chatChannel);
         inOrder.verify(chatChannel).sendHtml(htmlCaptor.capture());
-        inOrder.verify(chatChannel).chat("web", "hello");
+        inOrder.verify(chatChannel).chat("openai-main", "web", "hello");
         inOrder.verify(chatChannel).sendHtml(htmlCaptor.capture());
-        verifyNoMoreInteractions(chatChannel);
-
         assertThat(String.join("", htmlCaptor.getAllValues().get(0)))
                 .contains("hello")
                 .contains("typing-indicator")
@@ -66,7 +64,8 @@ class ChatWebSocketHandlerTest {
         WebSocketSession session = mock(WebSocketSession.class);
         ChatWebSocketHandler handler = new ChatWebSocketHandler(chatChannel, new ObjectMapper());
 
-        when(chatChannel.chat(anyString(), anyString())).thenThrow(new RuntimeException("boom"));
+        when(chatChannel.defaultAgentId()).thenReturn("openai-main");
+        when(chatChannel.chat(anyString(), anyString(), anyString())).thenThrow(new RuntimeException("boom"));
 
         handler.handleTextMessage(session, new TextMessage(new ObjectMapper().writeValueAsString(Map.of(
                 "type", "userMessage",
@@ -77,7 +76,7 @@ class ChatWebSocketHandlerTest {
         ArgumentCaptor<String[]> htmlCaptor = ArgumentCaptor.forClass(String[].class);
         var inOrder = inOrder(chatChannel);
         inOrder.verify(chatChannel).sendHtml(htmlCaptor.capture());
-        inOrder.verify(chatChannel).chat("web", "hello");
+        inOrder.verify(chatChannel).chat("openai-main", "web", "hello");
         inOrder.verify(chatChannel).sendHtml(htmlCaptor.capture());
 
         assertThat(String.join("", htmlCaptor.getAllValues().get(1)))
@@ -91,7 +90,8 @@ class ChatWebSocketHandlerTest {
         WebSocketSession session = mock(WebSocketSession.class);
         ChatWebSocketHandler handler = new ChatWebSocketHandler(chatChannel, new ObjectMapper());
 
-        when(chatChannel.loadHistoryAsHtml("web")).thenReturn(List.of("<div>history</div>"));
+        when(chatChannel.defaultAgentId()).thenReturn("openai-main");
+        when(chatChannel.loadHistoryAsHtml("openai-main", "web")).thenReturn(List.of("<div>history</div>"));
 
         handler.handleTextMessage(session, new TextMessage(new ObjectMapper().writeValueAsString(Map.of(
                 "type", "channelChanged",
@@ -113,8 +113,10 @@ class ChatWebSocketHandlerTest {
         WebSocketSession session = mock(WebSocketSession.class);
         ChatWebSocketHandler handler = new ChatWebSocketHandler(chatChannel, new ObjectMapper());
 
-        when(chatChannel.conversationIds()).thenReturn(List.of("web"));
-        when(chatChannel.loadHistoryAsHtml("web")).thenReturn(List.of("<div>history</div>"));
+        when(chatChannel.agentIds()).thenReturn(List.of("openai-main"));
+        when(chatChannel.defaultAgentId()).thenReturn("openai-main");
+        when(chatChannel.conversationIds("openai-main")).thenReturn(List.of("web"));
+        when(chatChannel.loadHistoryAsHtml("openai-main", "web")).thenReturn(List.of("<div>history</div>"));
 
         handler.afterConnectionEstablished(session);
 
@@ -123,6 +125,7 @@ class ChatWebSocketHandlerTest {
 
         assertThat(String.join("", htmlCaptor.getValue()))
                 .contains("channel-selector")
+                .contains("agent-selector")
                 .contains("chat-messages")
                 .contains("history")
                 .contains("chat-input-area");

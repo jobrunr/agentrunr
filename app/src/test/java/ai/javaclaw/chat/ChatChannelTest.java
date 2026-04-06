@@ -1,6 +1,9 @@
 package ai.javaclaw.chat;
 
 import ai.javaclaw.agent.Agent;
+import ai.javaclaw.agents.AgentConversationId;
+import ai.javaclaw.agents.AgentRegistry;
+import ai.javaclaw.agents.ConfiguredAgent;
 import ai.javaclaw.channels.ChannelRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,13 +32,16 @@ import static org.mockito.Mockito.when;
 class ChatChannelTest {
 
     @Mock Agent agent;
+    @Mock AgentRegistry agentRegistry;
     @Mock ChatMemoryRepository chatMemoryRepository;
 
     ChatChannel chatChannel;
 
     @BeforeEach
     void setUp() {
-        chatChannel = new ChatChannel(agent, new ChannelRegistry(), chatMemoryRepository);
+        lenient().when(agentRegistry.getDefaultAgentId()).thenReturn("openai-main");
+        lenient().when(agentRegistry.getAgents()).thenReturn(List.of(new ConfiguredAgent("openai-main", "openai", "gpt-5.4", "", "", "")));
+        chatChannel = new ChatChannel(agent, agentRegistry, new ChannelRegistry(), chatMemoryRepository);
     }
 
     // -----------------------------------------------------------------------
@@ -43,9 +50,12 @@ class ChatChannelTest {
 
     @Test
     void conversationIdsAlwaysContainsWebFirst() {
-        when(chatMemoryRepository.findConversationIds()).thenReturn(List.of("telegram-42", "web"));
+        when(chatMemoryRepository.findConversationIds()).thenReturn(List.of(
+                AgentConversationId.scoped("openai-main", "telegram-42"),
+                AgentConversationId.scoped("openai-main", "web")
+        ));
 
-        List<String> ids = chatChannel.conversationIds();
+        List<String> ids = chatChannel.conversationIds("openai-main");
 
         assertThat(ids).first().isEqualTo("web");
     }
@@ -54,25 +64,31 @@ class ChatChannelTest {
     void conversationIdsIncludesWebEvenWhenRepositoryReturnsEmpty() {
         when(chatMemoryRepository.findConversationIds()).thenReturn(List.of());
 
-        List<String> ids = chatChannel.conversationIds();
+        List<String> ids = chatChannel.conversationIds("openai-main");
 
         assertThat(ids).containsExactly("web");
     }
 
     @Test
     void conversationIdsIncludesOtherChannelsAfterWeb() {
-        when(chatMemoryRepository.findConversationIds()).thenReturn(List.of("telegram-42", "telegram-99"));
+        when(chatMemoryRepository.findConversationIds()).thenReturn(List.of(
+                AgentConversationId.scoped("openai-main", "telegram-42"),
+                AgentConversationId.scoped("openai-main", "telegram-99")
+        ));
 
-        List<String> ids = chatChannel.conversationIds();
+        List<String> ids = chatChannel.conversationIds("openai-main");
 
         assertThat(ids).containsExactly("web", "telegram-42", "telegram-99");
     }
 
     @Test
     void conversationIdsDeduplicatesWeb() {
-        when(chatMemoryRepository.findConversationIds()).thenReturn(List.of("web", "telegram-42"));
+        when(chatMemoryRepository.findConversationIds()).thenReturn(List.of(
+                AgentConversationId.scoped("openai-main", "web"),
+                AgentConversationId.scoped("openai-main", "telegram-42")
+        ));
 
-        List<String> ids = chatChannel.conversationIds();
+        List<String> ids = chatChannel.conversationIds("openai-main");
 
         assertThat(ids.stream().filter("web"::equals)).hasSize(1);
     }
@@ -83,9 +99,9 @@ class ChatChannelTest {
 
     @Test
     void loadHistoryReturnsWelcomeBubbleWhenNoHistory() {
-        when(chatMemoryRepository.findByConversationId("web")).thenReturn(List.of());
+        when(chatMemoryRepository.findByConversationId("openai-main::web")).thenReturn(List.of());
 
-        List<String> bubbles = chatChannel.loadHistoryAsHtml("web");
+        List<String> bubbles = chatChannel.loadHistoryAsHtml("openai-main", "web");
 
         assertThat(bubbles).hasSize(1);
         assertThat(bubbles.get(0)).contains("ar-msg--agent");
@@ -93,12 +109,12 @@ class ChatChannelTest {
 
     @Test
     void loadHistoryRendersUserAndAgentBubbles() {
-        when(chatMemoryRepository.findByConversationId("web")).thenReturn(List.of(
+        when(chatMemoryRepository.findByConversationId("openai-main::web")).thenReturn(List.of(
                 new UserMessage("Hello"),
                 new AssistantMessage("Hi there")
         ));
 
-        List<String> bubbles = chatChannel.loadHistoryAsHtml("web");
+        List<String> bubbles = chatChannel.loadHistoryAsHtml("openai-main", "web");
 
         assertThat(bubbles).hasSize(2);
         assertThat(bubbles.get(0)).contains("ar-msg--user").contains("Hello");
@@ -107,22 +123,22 @@ class ChatChannelTest {
 
     @Test
     void loadHistoryEscapesHtmlInMessages() {
-        when(chatMemoryRepository.findByConversationId("web")).thenReturn(List.of(
+        when(chatMemoryRepository.findByConversationId("openai-main::web")).thenReturn(List.of(
                 new UserMessage("<script>alert('xss')</script>")
         ));
 
-        List<String> bubbles = chatChannel.loadHistoryAsHtml("web");
+        List<String> bubbles = chatChannel.loadHistoryAsHtml("openai-main", "web");
 
         assertThat(bubbles.get(0)).doesNotContain("<script>").contains("&lt;script&gt;");
     }
 
     @Test
     void loadHistoryUsesSuppliedConversationId() {
-        when(chatMemoryRepository.findByConversationId("telegram-42")).thenReturn(List.of());
+        when(chatMemoryRepository.findByConversationId("openai-main::telegram-42")).thenReturn(List.of());
 
-        chatChannel.loadHistoryAsHtml("telegram-42");
+        chatChannel.loadHistoryAsHtml("openai-main", "telegram-42");
 
-        verify(chatMemoryRepository).findByConversationId("telegram-42");
+        verify(chatMemoryRepository).findByConversationId("openai-main::telegram-42");
     }
 
     // -----------------------------------------------------------------------
@@ -131,21 +147,21 @@ class ChatChannelTest {
 
     @Test
     void chatDelegatesToAgentWithConversationId() {
-        when(agent.respondTo("web", "hello")).thenReturn("hi");
+        when(agent.respondTo("openai-main", "web", "hello")).thenReturn("hi");
 
-        String response = chatChannel.chat("web", "hello");
+        String response = chatChannel.chat("openai-main", "web", "hello");
 
         assertThat(response).isEqualTo("hi");
-        verify(agent).respondTo(eq("web"), eq("hello"));
+        verify(agent).respondTo(eq("openai-main"), eq("web"), eq("hello"));
     }
 
     @Test
     void chatUsesSuppliedConversationId() {
-        when(agent.respondTo(eq("telegram-42"), any())).thenReturn("reply");
+        when(agent.respondTo(eq("openai-main"), eq("telegram-42"), any())).thenReturn("reply");
 
-        chatChannel.chat("telegram-42", "hello");
+        chatChannel.chat("openai-main", "telegram-42", "hello");
 
-        verify(agent).respondTo(eq("telegram-42"), eq("hello"));
+        verify(agent).respondTo(eq("openai-main"), eq("telegram-42"), eq("hello"));
     }
 
     // -----------------------------------------------------------------------

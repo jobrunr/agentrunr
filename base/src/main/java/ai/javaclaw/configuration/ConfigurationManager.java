@@ -87,9 +87,33 @@ public class ConfigurationManager {
 
     @SuppressWarnings("unchecked")
     private void setNestedValue(Map<String, Object> map, String[] keys, Object value) {
+        if (value == null) {
+            removeNestedValue(map, keys, 0);
+            return;
+        }
+
         for (int i = 0; i < keys.length - 1; i++) {
             map = (Map<String, Object>) map.computeIfAbsent(keys[i], k -> new LinkedHashMap<>());
         }
         map.put(keys[keys.length - 1], value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean removeNestedValue(Map<String, Object> map, String[] keys, int index) {
+        if (index == keys.length - 1) {
+            map.remove(keys[index]);
+            return map.isEmpty();
+        }
+
+        Object nested = map.get(keys[index]);
+        if (!(nested instanceof Map<?, ?> nestedMap)) {
+            return map.isEmpty();
+        }
+
+        boolean shouldRemoveChild = removeNestedValue((Map<String, Object>) nestedMap, keys, index + 1);
+        if (shouldRemoveChild) {
+            map.remove(keys[index]);
+        }
+        return map.isEmpty();
     }
 }

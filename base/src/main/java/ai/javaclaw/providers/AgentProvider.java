@@ -3,11 +3,9 @@ package ai.javaclaw.providers;
 import ai.javaclaw.onboarding.AgentOnboardingProvider;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
 
 import java.util.SequencedCollection;
 
-@Component
 public class AgentProvider {
 
     private final Environment environment;

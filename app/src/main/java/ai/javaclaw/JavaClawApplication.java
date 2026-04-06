@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -44,12 +45,16 @@ public class JavaClawApplication {
 
         @EventListener
         public void on(ConfigurationChangedEvent configurationChangedEvent) {
-            ApplicationArguments args = applicationContext.getBean(ApplicationArguments.class);
+
             
             Thread thread = new Thread(() -> {
                 try {
+                    ApplicationArguments args = new DefaultApplicationArguments();
+                    if(applicationContext != null){
+                        args = applicationContext.getBean(ApplicationArguments.class);
+                        applicationContext.close();
+                    }
                     Thread.sleep(2000);
-                    applicationContext.close();
                     applicationContext = SpringApplication.run(JavaClawApplication.class, args.getSourceArgs());
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

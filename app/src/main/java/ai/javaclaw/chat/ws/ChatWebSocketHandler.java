@@ -35,13 +35,17 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         chatChannel.setWsSession(session);
         log.info("WebChat WebSocket connected: {}", session.getId());
 
-        List<String> ids = chatChannel.conversationIds();
-        String selectedId = ids.getFirst();
+        List<String> agentIds = chatChannel.agentIds();
+        String selectedAgentId = agentIds.contains(chatChannel.defaultAgentId()) ? chatChannel.defaultAgentId() : agentIds.getFirst();
+        List<String> conversationIds = chatChannel.conversationIds(selectedAgentId);
+        String selectedConversationId = conversationIds.getFirst();
 
-        String conversationSelector = ChatHtml.conversationSelector(ids, selectedId);
-        String bubbles = String.join(System.lineSeparator(), chatChannel.loadHistoryAsHtml(selectedId));
-        String inputArea = ChatHtml.chatInputArea(selectedId);
+        String agentSelector = ChatHtml.agentSelector(agentIds, selectedAgentId);
+        String conversationSelector = ChatHtml.conversationSelector(conversationIds, selectedConversationId);
+        String bubbles = String.join(System.lineSeparator(), chatChannel.loadHistoryAsHtml(selectedAgentId, selectedConversationId));
+        String inputArea = ChatHtml.chatInputArea(selectedAgentId, selectedConversationId);
         chatChannel.sendHtml(
+                Htmx.oobInnerHtml("agent-selector", agentSelector),
                 Htmx.oobInnerHtml("channel-selector", conversationSelector),
                 Htmx.oobInnerHtml("chat-messages", bubbles),
                 Htmx.oobInnerHtml("chat-input-area", inputArea));
@@ -61,29 +65,54 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         if ("channelChanged".equals(type)) {
             handleChannelChanged(payload);
+        } else if ("agentChanged".equals(type)) {
+            handleAgentChanged(payload);
         } else if ("userMessage".equals(type)) {
             handleUserMessage(payload);
         }
     }
 
+    private void handleAgentChanged(Map<String, Object> payload) throws Exception {
+        String agentId = (String) payload.get("agentId");
+        if (agentId == null || agentId.isBlank()) {
+            agentId = chatChannel.defaultAgentId();
+        }
+
+        List<String> conversationIds = chatChannel.conversationIds(agentId);
+        String selectedConversationId = conversationIds.getFirst();
+        String conversationSelector = ChatHtml.conversationSelector(conversationIds, selectedConversationId);
+        String bubbles = String.join(System.lineSeparator(), chatChannel.loadHistoryAsHtml(agentId, selectedConversationId));
+        String inputArea = ChatHtml.chatInputArea(agentId, selectedConversationId);
+        chatChannel.sendHtml(
+                Htmx.oobInnerHtml("channel-selector", conversationSelector),
+                Htmx.oobInnerHtml("chat-messages", bubbles),
+                Htmx.oobInnerHtml("chat-input-area", inputArea));
+    }
+
     private void handleChannelChanged(Map<String, Object> payload) throws Exception {
+        String agentId = (String) payload.get("agentId");
         String conversationId = (String) payload.get("conversationId");
         if (conversationId == null || conversationId.isBlank()) return;
+        if (agentId == null || agentId.isBlank()) {
+            agentId = chatChannel.defaultAgentId();
+        }
 
-        String bubbles = String.join(System.lineSeparator(), chatChannel.loadHistoryAsHtml(conversationId));
-        String inputArea = ChatHtml.chatInputArea(conversationId);
+        String bubbles = String.join(System.lineSeparator(), chatChannel.loadHistoryAsHtml(agentId, conversationId));
+        String inputArea = ChatHtml.chatInputArea(agentId, conversationId);
         chatChannel.sendHtml(
                 Htmx.oobInnerHtml("chat-messages", bubbles),
                 Htmx.oobInnerHtml("chat-input-area", inputArea));
     }
 
     private void handleUserMessage(Map<String, Object> payload) throws Exception {
+        String agentId = (String) payload.get("agentId");
         String conversationId = (String) payload.get("conversationId");
         String userMessage = (String) payload.get("message");
 
         if (userMessage == null || userMessage.isBlank()) return;
         userMessage = userMessage.trim();
         if (conversationId == null || conversationId.isBlank()) conversationId = "web";
+        if (agentId == null || agentId.isBlank()) agentId = chatChannel.defaultAgentId();
 
         // Echo user message + show typing indicator
         chatChannel.sendHtml(
@@ -92,12 +121,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         try {
             // Call agent (blocking — background tasks may push messages via ChatChannel during this)
-            String response = chatChannel.chat(conversationId, userMessage);
+            String response = chatChannel.chat(agentId, conversationId, userMessage);
             chatChannel.sendHtml(
                     Htmx.oobAppend("chat-messages", ChatHtml.agentBubble(response)),
                     Htmx.oobReplace("typing-indicator", ""));
         } catch (RuntimeException ex) {
-            log.warn("Chat request failed for conversation {}", conversationId, ex);
+            log.warn("Chat request failed for agent {} conversation {}", agentId, conversationId, ex);
             chatChannel.sendHtml(
                     Htmx.oobAppend("chat-messages", ChatHtml.agentBubble(genericUserFacingError(ex))),
                     Htmx.oobReplace("typing-indicator", ""));
