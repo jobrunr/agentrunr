@@ -79,9 +79,5 @@ class S4_AgentMdStepTest {
             return "gpt-5.4";
         }
 
-        @Override
-        public boolean usesRuntimeRegistry() {
-            return true;
-        }
     }
 }

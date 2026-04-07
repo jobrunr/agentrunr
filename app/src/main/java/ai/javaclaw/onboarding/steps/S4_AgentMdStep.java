@@ -93,29 +93,11 @@ public class S4_AgentMdStep implements OnboardingProvider {
     }
 
     private Resource resolveAgentWorkspace(Map<String, Object> session) throws IOException {
-        if (!usesAgentWorkspace(session)) {
-            return agentWorkspaceResolver.rootWorkspace();
-        }
-
         String agentId = (String) session.getOrDefault(S2_ProviderStep.SESSION_AGENT_ID, environment.getProperty("agent.agents.default", "default"));
         String configuredWorkspace = environment.getProperty(S2_ProviderStep.runtimeAgentKey(agentId, "workspace"), "");
         Path workspacePath = agentWorkspaceResolver.initializeWorkspace(
                 agentWorkspaceResolver.resolveWorkspacePath(configuredWorkspace, agentId)
         );
         return agentWorkspaceResolver.asResource(workspacePath);
-    }
-
-    private boolean usesAgentWorkspace(Map<String, Object> session) {
-        String providerId = (String) session.get(S2_ProviderStep.SESSION_PROVIDER);
-        if (providerId == null || providerId.isBlank()) {
-            String agentId = (String) session.getOrDefault(S2_ProviderStep.SESSION_AGENT_ID, environment.getProperty("agent.agents.default", "default"));
-            providerId = environment.getProperty(S2_ProviderStep.runtimeAgentKey(agentId, "provider"), "");
-        }
-        if (providerId == null || providerId.isBlank()) {
-            return false;
-        }
-        return agentOnboardingProviders.findById(providerId)
-                .map(provider -> provider.usesRuntimeRegistry())
-                .orElse(false);
     }
 }

@@ -82,15 +82,8 @@ public class S2_ProviderStep implements OnboardingProvider {
 
         AgentOnboardingProvider agentOnboardingProvider = agentOnboardingProviders.getById(providerId);
         Map<String, Object> props = new LinkedHashMap<>();
-        if (agentOnboardingProvider.usesRuntimeRegistry()) {
-            saveRuntimeAgent(props, agentOnboardingProvider, agentId, model, apiKey);
-            clearSpringAiProviderConfig(props);
-        } else {
-            clearRuntimeDefaultAgent(props);
-            agentOnboardingProvider.saveProperty(props, "chat.options.model", model);
-            agentOnboardingProvider.saveProperty(props, "api-key", apiKey);
-            props.put("spring.ai.model.chat", agentOnboardingProvider.getId().replace(".", "-"));
-        }
+        saveRuntimeAgent(props, agentOnboardingProvider, agentId, model, apiKey);
+        clearSpringAiProviderConfig(props);
         configurationManager.updateProperties(props);
     }
 

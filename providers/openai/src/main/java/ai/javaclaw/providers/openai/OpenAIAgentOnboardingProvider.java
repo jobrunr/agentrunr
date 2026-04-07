@@ -31,8 +31,4 @@ public class OpenAIAgentOnboardingProvider implements AgentOnboardingProvider {
         return "gpt-5.4";
     }
 
-    @Override
-    public boolean usesRuntimeRegistry() {
-        return true;
-    }
 }

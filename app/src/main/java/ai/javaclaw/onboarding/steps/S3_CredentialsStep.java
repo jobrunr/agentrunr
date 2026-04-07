@@ -104,31 +104,23 @@ public class S3_CredentialsStep implements OnboardingProvider {
     }
 
     private String existingModel(AgentOnboardingProvider provider, String agentId) {
-        return provider.usesRuntimeRegistry()
-                ? env.getProperty(S2_ProviderStep.runtimeAgentKey(agentId, "model"), "")
-                : env.getProperty(provider.createPropertyKey("chat.options.model"), "");
+        return env.getProperty(S2_ProviderStep.runtimeAgentKey(agentId, "model"), "");
     }
 
     private String existingApiKey(AgentOnboardingProvider provider, String agentId) {
-        return provider.usesRuntimeRegistry()
-                ? env.getProperty(S2_ProviderStep.runtimeAgentKey(agentId, "api-key"), "")
-                : env.getProperty(provider.createPropertyKey("api-key"), "");
+        return env.getProperty(S2_ProviderStep.runtimeAgentKey(agentId, "api-key"), "");
     }
 
     private String modelPropertyKey(AgentOnboardingProvider provider, String agentId) {
-        return provider.usesRuntimeRegistry()
-                ? S2_ProviderStep.runtimeAgentKey(agentId, "model")
-                : provider.createPropertyKey("chat.options.model");
+        return S2_ProviderStep.runtimeAgentKey(agentId, "model");
     }
 
     private String apiKeyPropertyKey(AgentOnboardingProvider provider, String agentId) {
-        return provider.usesRuntimeRegistry()
-                ? S2_ProviderStep.runtimeAgentKey(agentId, "api-key")
-                : provider.createPropertyKey("api-key");
+        return S2_ProviderStep.runtimeAgentKey(agentId, "api-key");
     }
 
     private String baseUrlPropertyKey(AgentOnboardingProvider provider, String agentId) {
-        if (!provider.usesRuntimeRegistry() || !provider.runtimeModelProperties().containsKey("base-url")) {
+        if (!provider.runtimeModelProperties().containsKey("base-url")) {
             return null;
         }
         return S2_ProviderStep.runtimeAgentKey(agentId, "base-url");

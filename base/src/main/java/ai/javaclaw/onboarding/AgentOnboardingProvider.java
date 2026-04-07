@@ -32,9 +32,5 @@ public interface AgentOnboardingProvider {
         return Map.of();
     }
 
-    default boolean usesRuntimeRegistry() {
-        return false;
-    }
-
     record SystemWideToken(String name, String token) {}
 }
