@@ -7,8 +7,4 @@ public record ConfiguredAgent(
         String apiKey,
         String baseUrl,
         String workspacePath
-) {
-    public boolean isOpenAiCompatible() {
-        return "openai".equalsIgnoreCase(provider);
-    }
-}
+) { }

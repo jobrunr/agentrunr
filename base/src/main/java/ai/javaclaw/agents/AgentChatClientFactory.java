@@ -8,7 +8,6 @@ import ai.javaclaw.tools.AutoDiscoveredTool;
 import ai.javaclaw.tools.CheckListTool;
 import ai.javaclaw.tools.McpTool;
 import ai.javaclaw.tools.TaskTool;
-import io.micrometer.observation.ObservationRegistry;
 import org.springaicommunity.agent.tools.FileSystemTools;
 import org.springaicommunity.agent.tools.SkillsTool;
 import org.springaicommunity.agent.tools.SmartWebFetchTool;
@@ -22,28 +21,22 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
-import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
-import org.springframework.ai.model.tool.ToolCallingManager;
-import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
-import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.io.Resource;
-import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 @Component
 public class AgentChatClientFactory {
@@ -56,13 +49,9 @@ public class AgentChatClientFactory {
     private final ConfigurationManager configurationManager;
     private final AgentWorkspaceResolver agentWorkspaceResolver;
     private final Set<AutoDiscoveredTool<?>> autoDiscoveredTools;
-    private final ToolCallingManager toolCallingManager;
-    private final ObservationRegistry observationRegistry;
-    private final ToolExecutionEligibilityPredicate toolExecutionEligibilityPredicate;
-    private final RetryTemplate retryTemplate;
-    private final RestClient.Builder restClientBuilder;
-    private final WebClient.Builder webClientBuilder;
     private final ConcurrentMap<String, ChatClient> cachedClients = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Runnable> cachedClientDisposers = new ConcurrentHashMap<>();
+    private final Map<String, AgentChatModelFactory> modelFactoriesByProviderId;
 
     public AgentChatClientFactory(ChatMemory chatMemory,
                                   SyncMcpToolCallbackProvider mcpToolProvider,
@@ -70,24 +59,21 @@ public class AgentChatClientFactory {
                                   ConfigurationManager configurationManager,
                                   AgentWorkspaceResolver agentWorkspaceResolver,
                                   Set<AutoDiscoveredTool<?>> autoDiscoveredTools,
-                                  ToolCallingManager toolCallingManager,
-                                  ObjectProvider<ObservationRegistry> observationRegistry,
-                                  ObjectProvider<ToolExecutionEligibilityPredicate> toolExecutionEligibilityPredicate,
-                                  ObjectProvider<RetryTemplate> retryTemplate,
-                                  ObjectProvider<RestClient.Builder> restClientBuilder,
-                                  ObjectProvider<WebClient.Builder> webClientBuilder) {
+                                  Set<AgentChatModelFactory> modelFactories) {
         this.chatMemory = chatMemory;
         this.mcpToolProvider = mcpToolProvider;
         this.taskManager = taskManager;
         this.configurationManager = configurationManager;
         this.agentWorkspaceResolver = agentWorkspaceResolver;
         this.autoDiscoveredTools = autoDiscoveredTools;
-        this.toolCallingManager = toolCallingManager;
-        this.observationRegistry = observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP);
-        this.toolExecutionEligibilityPredicate = toolExecutionEligibilityPredicate.getIfUnique(DefaultToolExecutionEligibilityPredicate::new);
-        this.retryTemplate = retryTemplate.getIfUnique(RetryTemplate::new);
-        this.restClientBuilder = restClientBuilder.getIfAvailable(RestClient::builder);
-        this.webClientBuilder = webClientBuilder.getIfAvailable(WebClient::builder);
+        this.modelFactoriesByProviderId = modelFactories.stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                        f -> normalizeProviderId(f.providerId()),
+                        Function.identity(),
+                        (a, b) -> {
+                            throw new IllegalStateException("Multiple AgentChatModelFactory beans found for providerId=" + a.providerId());
+                        }
+                ));
     }
 
     public ChatClient getClient(ConfiguredAgent configuredAgent) {
@@ -110,36 +96,24 @@ public class AgentChatClientFactory {
 
     @EventListener
     public void onConfigurationChanged(ConfigurationChangedEvent ignored) {
+        cachedClientDisposers.values().forEach(disposer -> {
+            try {
+                disposer.run();
+            } catch (Exception e) {
+                // best-effort cleanup; do not fail config refresh
+            }
+        });
         cachedClients.clear();
+        cachedClientDisposers.clear();
     }
 
     private ChatClient createRuntimeClient(ConfiguredAgent configuredAgent) {
-        if (!configuredAgent.isOpenAiCompatible()) {
+        AgentChatModelFactory factory = modelFactoriesByProviderId.get(normalizeProviderId(configuredAgent.provider()));
+        if (factory == null) {
             return createClient(noModelConfiguredChatModel());
         }
-
-        OpenAiApi.Builder openAiApiBuilder = OpenAiApi.builder()
-                .apiKey(configuredAgent.apiKey())
-                .restClientBuilder(restClientBuilder.clone())
-                .webClientBuilder(webClientBuilder.clone());
-        if (!configuredAgent.baseUrl().isBlank()) {
-            openAiApiBuilder.baseUrl(configuredAgent.baseUrl());
-        }
-        OpenAiApi openAiApi = openAiApiBuilder.build();
-
-        OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .model(configuredAgent.model())
-                .build();
-
-        OpenAiChatModel chatModel = OpenAiChatModel.builder()
-                .openAiApi(openAiApi)
-                .defaultOptions(options)
-                .toolCallingManager(toolCallingManager)
-                .toolExecutionEligibilityPredicate(toolExecutionEligibilityPredicate)
-                .retryTemplate(retryTemplate)
-                .observationRegistry(observationRegistry)
-                .build();
-
+        ChatModel chatModel = factory.createChatModel(configuredAgent);
+        cachedClientDisposers.put(configuredAgent.id(), toDisposer(chatModel));
         return createClient(chatModel, resolveWorkspace(configuredAgent));
     }
 
@@ -210,5 +184,32 @@ public class AgentChatClientFactory {
         } catch (IOException e) {
             return false;
         }
+    }
+
+    private static String normalizeProviderId(String providerId) {
+        if (providerId == null) {
+            return "";
+        }
+        return providerId.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static Runnable toDisposer(ChatModel chatModel) {
+        if (chatModel instanceof DisposableBean disposableBean) {
+            return () -> {
+                try {
+                    disposableBean.destroy();
+                } catch (Exception ignored) {
+                }
+            };
+        }
+        if (chatModel instanceof AutoCloseable autoCloseable) {
+            return () -> {
+                try {
+                    autoCloseable.close();
+                } catch (Exception ignored) {
+                }
+            };
+        }
+        return () -> { };
     }
 }

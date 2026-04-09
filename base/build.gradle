@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-restclient'
     implementation 'org.springframework.modulith:spring-modulith-starter-core'
     implementation 'org.jobrunr:jobrunr-spring-boot-4-starter:8.5.1'
     implementation 'org.apache.commons:commons-lang3'
@@ -12,9 +13,8 @@ dependencies {
     // No idea?
     runtimeOnly 'io.netty:netty-resolver-dns-native-macos:4.2.10.Final'
 
-    implementation 'org.springframework.ai:spring-ai-client-chat'
+    api 'org.springframework.ai:spring-ai-client-chat'
     implementation 'org.springframework.ai:spring-ai-starter-mcp-client'
-    implementation 'org.springframework.ai:spring-ai-openai'
 
     implementation 'org.springaicommunity:spring-ai-agent-utils:0.6.0-SNAPSHOT'
     implementation 'org.springaicommunity:tool-search-tool:2.0.1'

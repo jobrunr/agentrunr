@@ -1,11 +1,11 @@
 package ai.javaclaw.models;
 
 import ai.javaclaw.agents.AgentChatClientFactory;
+import ai.javaclaw.agents.AgentChatModelFactory;
 import ai.javaclaw.agents.AgentWorkspaceResolver;
 import ai.javaclaw.configuration.ConfigurationManager;
 import ai.javaclaw.tasks.TaskManager;
 import ai.javaclaw.tools.AutoDiscoveredTool;
-import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.ai.chat.client.ChatClient;
@@ -13,14 +13,8 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.ai.model.tool.ToolCallingManager;
-import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.retry.RetryTemplate;
 import org.springframework.mock.env.MockEnvironment;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,12 +51,7 @@ class AgentChatClientFactoryTest {
                 mock(ConfigurationManager.class),
                 resolver,
                 Set.<AutoDiscoveredTool<?>>of(),
-                mock(ToolCallingManager.class),
-                stubProvider(ObservationRegistry.NOOP),
-                stubProvider(mock(ToolExecutionEligibilityPredicate.class)),
-                stubProvider(new RetryTemplate()),
-                stubProvider(RestClient.builder()),
-                stubProvider(WebClient.builder())
+                Set.<AgentChatModelFactory>of()
         );
 
         ChatModel chatModel = factory.noModelConfiguredChatModel();
@@ -71,13 +60,5 @@ class AgentChatClientFactoryTest {
             ChatClient client = factory.createClient(chatModel);
             client.prompt("hello");
         });
-    }
-
-    private static <T> ObjectProvider<T> stubProvider(T value) {
-        @SuppressWarnings("unchecked")
-        ObjectProvider<T> provider = mock(ObjectProvider.class);
-        when(provider.getIfUnique(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> value != null ? value : invocation.getArgument(0, java.util.function.Supplier.class).get());
-        when(provider.getIfAvailable(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> value != null ? value : invocation.getArgument(0, java.util.function.Supplier.class).get());
-        return provider;
     }
 }
