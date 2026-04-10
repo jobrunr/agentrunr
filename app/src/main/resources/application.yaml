@@ -14,6 +14,7 @@ spring:
       - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
+      - org.springframework.ai.model.openaisdk.autoconfigure.OpenAiSdkChatAutoConfiguration
   config:
     import: optional:classpath:application.private.yaml
   datasource:
