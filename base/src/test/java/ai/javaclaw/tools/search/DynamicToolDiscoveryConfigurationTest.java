@@ -13,6 +13,16 @@ class DynamicToolDiscoveryConfigurationTest {
             .withUserConfiguration(DynamicToolDiscoveryConfiguration.class);
 
     @Test
+    void whenPropertyIsMissing_defaultsToEnabled() {
+        contextRunner
+                .run(context -> {
+                    assertThat(context).hasSingleBean(ToolSearcher.class);
+                    assertThat(context).hasSingleBean(ToolSearchToolCallAdvisor.class);
+                    assertThat(context.getBean(DynamicToolDiscoveryProperties.class).enabled()).isTrue();
+                });
+    }
+
+    @Test
     void whenEnabled_registersToolSearcherAndAdvisor() {
         contextRunner
                 .withPropertyValues(
@@ -37,4 +47,3 @@ class DynamicToolDiscoveryConfigurationTest {
                 });
     }
 }
-

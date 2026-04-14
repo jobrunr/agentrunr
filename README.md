@@ -166,8 +166,8 @@ javaclaw:
 ```
 
 Flag behavior:
-- `enabled=false` (default): eager tool exposure (legacy behavior).
-- `enabled=true`: uses the Tool Search advisor (dynamic discovery, Lucene keyword search).
+- `enabled=true` (default): uses the Tool Search advisor (dynamic discovery, Lucene keyword search).
+- `enabled=false`: eager tool exposure (legacy behavior).
 
 Notes:
 - Tool search quality depends on `@Tool(description = "...")`. Keep descriptions specific and disambiguating.

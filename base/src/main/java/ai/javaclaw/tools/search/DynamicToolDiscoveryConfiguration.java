@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @EnableConfigurationProperties(DynamicToolDiscoveryProperties.class)
-@ConditionalOnProperty(name = "javaclaw.tools.dynamic-discovery.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "javaclaw.tools.dynamic-discovery.enabled", havingValue = "true", matchIfMissing = true)
 public class DynamicToolDiscoveryConfiguration {
 
     @Bean(destroyMethod = "close")
@@ -27,4 +27,3 @@ public class DynamicToolDiscoveryConfiguration {
                 .build();
     }
 }
-
