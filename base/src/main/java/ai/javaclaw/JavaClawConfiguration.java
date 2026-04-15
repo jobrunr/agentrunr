@@ -10,6 +10,7 @@ import ai.javaclaw.tools.TaskTool;
 import org.springaicommunity.agent.tools.FileSystemTools;
 import org.springaicommunity.agent.tools.SkillsTool;
 import org.springaicommunity.agent.tools.SmartWebFetchTool;
+import org.springaicommunity.tool.search.ToolSearchToolCallAdvisor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
@@ -69,6 +70,7 @@ public class JavaClawConfiguration {
     @DependsOn({"mcpHeaderCustomizer"})
     public ChatClient chatClient(ChatClient.Builder chatClientBuilder,
                                  ChatMemory chatMemory,
+                                 ObjectProvider<ToolSearchToolCallAdvisor> toolSearchToolCallAdvisorProvider,
                                  SyncMcpToolCallbackProvider mcpToolProvider,
                                  TaskManager taskManager,
                                  ConfigurationManager configurationManager,
@@ -82,6 +84,11 @@ public class JavaClawConfiguration {
         }
         String agentPrompt = agentMd.getContentAsString(StandardCharsets.UTF_8) + System.lineSeparator()
                 + workspace.createRelative("INFO.md").getContentAsString(StandardCharsets.UTF_8) + System.lineSeparator();
+
+        ToolCallAdvisor toolCallAdvisor = toolSearchToolCallAdvisorProvider.getIfAvailable();
+        if (toolCallAdvisor == null) {
+            toolCallAdvisor = ToolCallAdvisor.builder().build();
+        }
 
         chatClientBuilder
                 .defaultAdvisors(new SimpleLoggerAdvisor())
@@ -99,7 +106,7 @@ public class JavaClawConfiguration {
                         // Smart web fetch tool
                         SmartWebFetchTool.builder(chatClientBuilder.clone().build()).build())
                 .defaultAdvisors(
-                        ToolCallAdvisor.builder().build(),
+                        toolCallAdvisor,
                         MessageChatMemoryAdvisor.builder(chatMemory).build()
                 );
 
