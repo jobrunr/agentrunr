@@ -43,6 +43,10 @@ public class JavaClawConfiguration {
 
     public static final String AGENT_MD = "AGENT.private.md";
 
+    @Value("${agent.skills.paths}")
+    List<Resource> skillPaths;
+
+
     @Bean
     @ConditionalOnProperty(name = SpringAIModelProperties.CHAT_MODEL, havingValue = "unknown", matchIfMissing = true)
     public ChatModel chatModel() {
@@ -87,7 +91,11 @@ public class JavaClawConfiguration {
                 .defaultAdvisors(new SimpleLoggerAdvisor())
                 .defaultSystem(p -> p.text(agentPrompt).param(AgentEnvironment.ENVIRONMENT_INFO_KEY, AgentEnvironment.info()))
                 .defaultToolCallbacks(mcpToolProvider.getToolCallbacks())
-                .defaultToolCallbacks(SkillsTool.builder().addSkillsDirectory(skillsDir(workspace).toString()).build())
+                .defaultToolCallbacks(SkillsTool.builder()
+                        .addSkillsDirectory(skillsDir(workspace).toString())
+                        .addSkillsResources(skillPaths)
+                        .build()
+                )
                 .defaultTools(
                         TaskTool.builder().taskManager(taskManager).build(),
                         CheckListTool.builder().build(),
