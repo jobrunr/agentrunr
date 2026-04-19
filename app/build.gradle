@@ -37,8 +37,6 @@ dependencies {
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    runtimeOnly("com.skillsjars:addyosmani__agent-skills__api-and-interface-design:2026_04_03-a806c63")
-
 }
 
 bootRun {
