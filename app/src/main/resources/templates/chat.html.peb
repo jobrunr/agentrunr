@@ -33,11 +33,6 @@
                 </a>
             </div>
             <div class="navbar-item">
-                <a href="/onboarding" class="button is-small is-dark">
-                    <span>Onboarding</span>
-                </a>
-            </div>
-            <div class="navbar-item">
                 <a href="http://localhost:{{ jobrunrDashboardPort }}" target="_blank" rel="noopener noreferrer" class="button is-small is-dark">
                     <span>JobRunr Dashboard</span>
                 </a>
