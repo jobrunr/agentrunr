@@ -1,8 +1,8 @@
 package ai.javaclaw.api;
 
-import ai.javaclaw.agents.AgentRegistry;
-import ai.javaclaw.agents.AgentWorkspaceResolver;
-import ai.javaclaw.agents.ConfiguredAgent;
+import ai.javaclaw.agent.AgentRegistry;
+import ai.javaclaw.agent.AgentWorkspaceResolver;
+import ai.javaclaw.agent.ConfiguredAgent;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;

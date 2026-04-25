@@ -1,8 +1,9 @@
 package ai.javaclaw.chat;
 
 import ai.javaclaw.agent.Agent;
-import ai.javaclaw.agents.AgentConversationId;
-import ai.javaclaw.agents.AgentRegistry;
+import ai.javaclaw.agent.AgentConversationId;
+import ai.javaclaw.agent.AgentRegistry;
+import ai.javaclaw.agent.ConfiguredAgent;
 import ai.javaclaw.channels.Channel;
 import ai.javaclaw.channels.ChannelMessageReceivedEvent;
 import ai.javaclaw.channels.ChannelRegistry;
@@ -101,7 +102,7 @@ public class ChatChannel implements Channel {
      * Returns all known conversation IDs, always with "web" first.
      */
     public List<String> agentIds() {
-        List<String> ids = agentRegistry.getAgents().stream().map(ai.javaclaw.agents.ConfiguredAgent::id).toList();
+        List<String> ids = agentRegistry.getAgents().stream().map(ConfiguredAgent::id).toList();
         if (!ids.isEmpty()) {
             return ids;
         }

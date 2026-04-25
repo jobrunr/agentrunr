@@ -1,8 +1,8 @@
 package ai.javaclaw.models;
 
-import ai.javaclaw.agents.AgentChatClientFactory;
-import ai.javaclaw.agents.AgentChatModelFactory;
-import ai.javaclaw.agents.AgentWorkspaceResolver;
+import ai.javaclaw.agent.AgentChatClientFactory;
+import ai.javaclaw.agent.AgentChatModelFactory;
+import ai.javaclaw.agent.AgentWorkspaceResolver;
 import ai.javaclaw.configuration.ConfigurationManager;
 import ai.javaclaw.tasks.TaskManager;
 import ai.javaclaw.tools.AutoDiscoveredTool;

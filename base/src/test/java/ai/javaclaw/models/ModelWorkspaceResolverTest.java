@@ -1,6 +1,6 @@
 package ai.javaclaw.models;
 
-import ai.javaclaw.agents.AgentWorkspaceResolver;
+import ai.javaclaw.agent.AgentWorkspaceResolver;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.DefaultResourceLoader;

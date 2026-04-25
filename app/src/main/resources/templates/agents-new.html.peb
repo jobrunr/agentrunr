@@ -1,0 +1,152 @@
+{% extends "base" %}
+
+{% block title %} {{ pageTitle }}{% endblock %}
+
+{% block head %}
+<style>
+.agents-new-shell {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(72, 199, 142, .14), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(50, 115, 220, .10), transparent 28%),
+        linear-gradient(180deg, #0f1419 0%, #151b21 100%);
+    color: #e8edf3;
+}
+
+.agents-new-shell .navbar {
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.agents-new-shell .card {
+    background: rgba(16, 22, 29, .86);
+    border: 1px solid rgba(255, 255, 255, .08);
+    box-shadow: 0 22px 50px rgba(0, 0, 0, .18);
+}
+
+.agents-new-shell label.label,
+.agents-new-shell .help,
+.agents-new-shell .content {
+    color: rgba(220, 228, 238, .75);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section agents-new-shell">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <span class="navbar-item">
+                <div class="brand-lockup">
+                    <p class="brand-word"><span class="brand-agent">Java</span><span class="brand-runr">Claw</span></p>
+                </div>
+            </span>
+        </div>
+        <div class="navbar-end">
+            <div class="navbar-item">
+                <a href="/chat" class="button is-dark is-small" hx-boost="false">Chat</a>
+            </div>
+            <div class="navbar-item">
+                <a href="/agents" class="button is-dark is-small">Agents</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-6">
+        <div class="columns is-variable is-6">
+            <div class="column is-8">
+                <h1 class="title is-2 has-text-white mb-2">{{ pageTitle }}</h1>
+                <p class="subtitle has-text-grey-light mb-0">
+                    {{ pageSubtitle }}
+                </p>
+            </div>
+        </div>
+
+        {% if error %}
+        <article class="message is-danger mt-5">
+            <div class="message-body">{{ error }}</div>
+        </article>
+        {% endif %}
+
+        <div class="card mt-5">
+            <div class="card-content">
+                <form method="post" action="{{ formAction }}" hx-boost="false">
+                    <div class="field">
+                        <label class="label" for="provider">Provider</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select id="provider" name="provider" required {% if editing %}disabled{% endif %}>
+                                    <option value="" {% if selectedProvider == "" %}selected{% endif %}>Choose a provider…</option>
+                                    {% for p in providers %}
+                                    <option value="{{ p.id }}" {% if p.id == selectedProvider %}selected{% endif %}>{{ p.label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <p class="help">The provider backend for this agent.</p>
+                    </div>
+                    {% if editing %}
+                    <input type="hidden" name="provider" value="{{ selectedProvider }}">
+                    {% endif %}
+
+                    <div class="field">
+                        <label class="label" for="agentId">Agent id</label>
+                        <div class="control">
+                            <input id="agentId" class="input" type="text" name="agentId" value="{{ agentId }}" placeholder="e.g. openai-main" autocomplete="off" required {% if editing %}disabled{% endif %}>
+                        </div>
+                        <p class="help">Allowed: letters, numbers, dashes, underscores. Must be unique.</p>
+                    </div>
+                    {% if editing %}
+                    <input type="hidden" name="agentId" value="{{ agentId }}">
+                    {% endif %}
+
+                    <div class="columns is-variable is-5">
+                        <div class="column is-7">
+                            <div class="field">
+                                <label class="label" for="model">Model</label>
+                                <div class="control">
+                                    <input id="model" class="input" type="text" name="model" value="{{ modelName }}" placeholder="e.g. gpt-5.4" autocomplete="off" required>
+                                </div>
+                                <p class="help">The model identifier for the selected provider.</p>
+                            </div>
+                        </div>
+                        <div class="column is-5">
+                            <div class="field">
+                                <label class="label" for="baseUrl">Base URL (optional)</label>
+                                <div class="control">
+                                    <input id="baseUrl" class="input" type="text" name="baseUrl" value="{{ baseUrl }}" placeholder="https://…" autocomplete="off">
+                                </div>
+                                <p class="help">Useful for OpenAI-compatible providers.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="apiKey">API key</label>
+                        <div class="control">
+                            <input id="apiKey" class="input" type="password" name="apiKey" value="{{ apiKey }}" placeholder="••••••••" autocomplete="off">
+                        </div>
+                        {% if editing %}
+                        <p class="help">Leave empty to keep the currently configured API key.</p>
+                        {% else %}
+                        <p class="help">Required for most cloud providers.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" name="setDefault" {% if setDefault %}checked{% endif %}>
+                            Set as default agent
+                        </label>
+                    </div>
+
+                    <div class="buttons mt-4">
+                        <a href="/agents" class="button is-dark">Cancel</a>
+                        <button type="submit" class="button is-primary">{{ submitLabel }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

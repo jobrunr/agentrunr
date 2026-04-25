@@ -3,153 +3,6 @@
 {% block title %} Chat{% endblock %}
 
 {% block head %}
-<style>
-.chat-page {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    background-color: hsl(229, 18%, 8%);
-}
-
-.chat-page > .navbar {
-    flex-shrink: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, .06);
-}
-
-.chat-body {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    scroll-behavior: smooth;
-}
-.chat-body::-webkit-scrollbar { width: 4px; }
-.chat-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
-
-.chat-body .container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-    padding: 1.5rem 1.5rem .5rem;
-}
-
-#chat-messages {
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: .875rem;
-    padding-bottom: .25rem;
-}
-
-.ar-msg {
-    display: flex;
-    align-items: flex-end;
-    gap: .55rem;
-    max-width: 76%;
-    animation: msg-in .22s cubic-bezier(.22, 1, .36, 1);
-}
-@keyframes msg-in {
-    from { opacity: 0; transform: translateY(8px) scale(.98); }
-    to   { opacity: 1; transform: translateY(0)   scale(1);   }
-}
-.ar-msg--user  { align-self: flex-end;  flex-direction: row-reverse; }
-.ar-msg--agent { align-self: flex-start; }
-
-.ar-msg__avatar {
-    flex-shrink: 0;
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .58rem; font-weight: 800; letter-spacing: .04em;
-    background: hsl(160, 30%, 14%);
-    border: 1px solid color-mix(in srgb, var(--bulma-primary) 30%, transparent);
-    color: var(--bulma-primary);
-}
-
-.ar-msg__bubble {
-    padding: .6rem .95rem;
-    border-radius: 1.1rem;
-    line-height: 1.65;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-.ar-msg--user  .ar-msg__bubble {
-    background: var(--bulma-primary);
-    color: #fff;
-    border-bottom-right-radius: .25rem;
-    box-shadow: 0 3px 14px color-mix(in srgb, var(--bulma-primary) 40%, transparent);
-}
-.ar-msg--agent .ar-msg__bubble,
-.ar-typing__dots {
-    background: hsl(228, 22%, 13%);
-    border: 1px solid rgba(255, 255, 255, .07);
-    border-radius: 1.1rem;
-    border-bottom-left-radius: .25rem;
-}
-
-.ar-msg--agent .ar-msg__bubble {
-    color: #c8cee0;
-}
-
-.ar-typing { display: flex; align-items: flex-end; gap: .55rem; padding-top: .5rem; animation: msg-in .22s cubic-bezier(.22,1,.36,1); }
-.ar-typing__dots {
-    display: flex; gap: .3rem; align-items: center;
-    padding: .65rem .9rem;
-}
-.ar-typing__dots span {
-    display: block; width: 6px; height: 6px; border-radius: 50%;
-    background: color-mix(in srgb, var(--bulma-primary) 65%, transparent);
-    animation: bounce 1.2s ease infinite;
-}
-.ar-typing__dots span:nth-child(2) { animation-delay: .15s; }
-.ar-typing__dots span:nth-child(3) { animation-delay: .30s; }
-@keyframes bounce {
-    0%, 60%, 100% { transform: translateY(0);    opacity: .3; }
-    30%            { transform: translateY(-5px); opacity: 1;  }
-}
-
-.chat-footer {
-    flex-shrink: 0;
-    padding: .875rem 1.5rem 1rem;
-    border-top: 1px solid rgba(255, 255, 255, .06);
-    background: hsl(229, 22%, 7%);
-}
-
-.chat-footer .textarea {
-    background: hsl(229, 20%, 12%);
-    border-color: rgba(255, 255, 255, .1);
-    color: #d8dde8;
-    border-radius: .75rem;
-    resize: none;
-    overflow-y: hidden;
-    min-height: 2.75rem;
-    max-height: 9rem;
-    padding: .6rem .9rem;
-    line-height: 1.5;
-    transition: border-color .15s, box-shadow .15s;
-}
-.chat-footer .textarea::placeholder { color: rgba(180, 195, 235, .28); }
-.chat-footer .textarea:focus {
-    border-color: var(--bulma-primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bulma-primary) 16%, transparent);
-}
-.chat-footer .button.is-primary {
-    border-radius: .75rem;
-    height: 2.75rem;
-    align-self: flex-end;
-    box-shadow: 0 3px 12px color-mix(in srgb, var(--bulma-primary) 45%, transparent);
-}
-
-.chat-readonly-notice {
-    color: rgba(180, 195, 235, .45);
-    font-size: .875rem;
-    text-align: center;
-    padding: .4rem 0;
-}
-.chat-readonly-notice strong {
-    color: rgba(180, 195, 235, .7);
-}
-</style>
 {% endblock %}
 
 {% block content %}
@@ -165,10 +18,14 @@
         </div>
         <div class="navbar-end">
             <div class="navbar-item">
-                <div class="select is-small is-dark" id="agent-selector"></div>
+                <div class="select is-small is-dark" id="agent-selector">
+                    {% autoescape false %}{{ agentSelectorHtml }}{% endautoescape %}
+                </div>
             </div>
             <div class="navbar-item">
-                <div class="select is-small is-dark" id="channel-selector"></div>
+                <div class="select is-small is-dark" id="channel-selector">
+                    {% autoescape false %}{{ channelSelectorHtml }}{% endautoescape %}
+                </div>
             </div>
             <div class="navbar-item">
                 <a href="/agents" class="button is-small is-dark">
@@ -177,7 +34,7 @@
             </div>
             <div class="navbar-item">
                 <a href="/onboarding" class="button is-small is-dark">
-                    <span>Settings</span>
+                    <span>Onboarding</span>
                 </a>
             </div>
             <div class="navbar-item">
@@ -194,6 +51,7 @@
     <div class="chat-body">
         <div class="container">
             <div id="chat-messages">
+                {% autoescape false %}{{ bubblesHtml }}{% endautoescape %}
             </div>
             <div id="typing-indicator"></div>
         </div>
@@ -201,27 +59,7 @@
 
     <div class="chat-footer">
         <div class="container" id="chat-input-area">
-            <form id="chat-form" ws-send hx-boost="false"
-                  hx-vals='js:{"type": "userMessage", "agentId": document.getElementById("agent-select") ? document.getElementById("agent-select").value : "", "conversationId": document.getElementById("channel-select") ? document.getElementById("channel-select").value : "web"}'>
-                <div class="field is-grouped" style="align-items: flex-end; margin: 0;">
-                    <div class="control is-expanded">
-                        <textarea id="message-input" class="textarea" name="message" rows="1"
-                            placeholder="Message JavaClaw…"
-                            autocomplete="off" spellcheck="true" autofocus
-                            hx-trigger="keydown[key=='Enter'&&!shiftKey] consume"
-                            ws-send></textarea>
-                    </div>
-                    <div class="control">
-                        <button id="send-btn" type="submit" class="button is-primary" title="Send (Enter)">
-                            <span class="icon">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                                </svg>
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </form>
+            {% autoescape false %}{{ inputAreaHtml }}{% endautoescape %}
         </div>
     </div>
 

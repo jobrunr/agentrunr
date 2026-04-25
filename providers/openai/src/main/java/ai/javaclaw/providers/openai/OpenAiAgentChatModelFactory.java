@@ -1,7 +1,7 @@
 package ai.javaclaw.providers.openai;
 
-import ai.javaclaw.agents.AgentChatModelFactory;
-import ai.javaclaw.agents.ConfiguredAgent;
+import ai.javaclaw.agent.AgentChatModelFactory;
+import ai.javaclaw.agent.ConfiguredAgent;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;

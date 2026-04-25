@@ -1,4 +1,4 @@
-package ai.javaclaw.agents;
+package ai.javaclaw.agent;
 
 import org.springframework.ai.chat.model.ChatModel;
 

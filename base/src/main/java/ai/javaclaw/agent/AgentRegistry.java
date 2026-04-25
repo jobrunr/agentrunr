@@ -1,4 +1,4 @@
-package ai.javaclaw.agents;
+package ai.javaclaw.agent;
 
 import ai.javaclaw.configuration.ConfigurationChangedEvent;
 import ai.javaclaw.configuration.ConfigurationManager;

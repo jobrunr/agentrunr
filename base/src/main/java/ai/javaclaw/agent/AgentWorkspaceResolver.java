@@ -1,4 +1,4 @@
-package ai.javaclaw.agents;
+package ai.javaclaw.agent;
 
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;

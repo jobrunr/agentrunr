@@ -1,8 +1,8 @@
 package ai.javaclaw.api;
 
-import ai.javaclaw.agents.AgentRegistry;
-import ai.javaclaw.agents.AgentWorkspaceResolver;
-import ai.javaclaw.agents.ConfiguredAgent;
+import ai.javaclaw.agent.AgentRegistry;
+import ai.javaclaw.agent.AgentWorkspaceResolver;
+import ai.javaclaw.agent.ConfiguredAgent;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;

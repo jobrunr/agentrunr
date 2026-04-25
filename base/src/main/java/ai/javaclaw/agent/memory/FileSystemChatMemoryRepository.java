@@ -1,8 +1,8 @@
 package ai.javaclaw.agent.memory;
 
-import ai.javaclaw.agents.AgentRegistry;
-import ai.javaclaw.agents.AgentConversationId;
-import ai.javaclaw.agents.AgentWorkspaceResolver;
+import ai.javaclaw.agent.AgentRegistry;
+import ai.javaclaw.agent.AgentConversationId;
+import ai.javaclaw.agent.AgentWorkspaceResolver;
 import ai.javaclaw.files.YamlDocument;
 import ai.javaclaw.files.YamlParser;
 import org.springframework.ai.chat.memory.AppendableChatMemoryRepository;

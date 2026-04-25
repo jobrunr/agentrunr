@@ -25,14 +25,14 @@ configure(subprojects.findAll { it.buildFile.exists() }) {
     apply plugin: 'io.spring.dependency-management'
 
     ext {
-        springAiVersion = '2.0.0-SNAPSHOT'
+        springAiVersion = '2.0.0-M4'
         springModulithVersion = '2.0.3'
     }
 
     dependencyManagement {
         imports {
             mavenBom "org.springframework.boot:spring-boot-dependencies:4.0.3"
-            mavenBom "org.springframework.ai:spring-ai-bom:2.0.0-SNAPSHOT"
+            mavenBom "org.springframework.ai:spring-ai-bom:2.0.0-M4"
             mavenBom "org.springframework.modulith:spring-modulith-bom:2.0.3"
         }
     }

@@ -1,7 +1,7 @@
 package ai.javaclaw.models;
 
-import ai.javaclaw.agents.AgentRegistry;
-import ai.javaclaw.agents.ConfiguredAgent;
+import ai.javaclaw.agent.AgentRegistry;
+import ai.javaclaw.agent.ConfiguredAgent;
 import ai.javaclaw.configuration.ConfigurationManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;

@@ -62,15 +62,15 @@
                 </div>
             </span>
         </div>
-        <div class="navbar-end">
-            <div class="navbar-item">
-                <a href="/chat" class="button is-dark is-small">Chat</a>
-            </div>
-            <div class="navbar-item">
-                <a href="/onboarding" class="button is-primary is-small">Add Agent</a>
-            </div>
-        </div>
-    </nav>
+	        <div class="navbar-end">
+	            <div class="navbar-item">
+	                <a href="/chat" class="button is-dark is-small" hx-boost="false">Chat</a>
+	            </div>
+	            <div class="navbar-item">
+	                <a href="/agents/new" class="button is-primary is-small">Add Agent</a>
+	            </div>
+	        </div>
+	    </nav>
 
     <div class="container mt-6">
         <div class="columns is-variable is-6">
@@ -92,6 +92,7 @@
                             <th>Model</th>
                             <th>Workspace</th>
                             <th>Status</th>
+                            <th></th>
                         </tr>
                         </thead>
                         <tbody>
@@ -107,6 +108,9 @@
                                 {% else %}
                                 <span class="tag is-rounded is-dark">Secondary</span>
                                 {% endif %}
+                            </td>
+                            <td style="white-space: nowrap;">
+                                <a class="button is-small is-dark" href="/agents/{{ agent.id }}/edit">Edit</a>
                             </td>
                         </tr>
                         {% endfor %}

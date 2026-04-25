@@ -1,7 +1,7 @@
 package ai.javaclaw.onboarding.steps;
 
 import ai.javaclaw.configuration.ConfigurationManager;
-import ai.javaclaw.agents.AgentWorkspaceResolver;
+import ai.javaclaw.agent.AgentWorkspaceResolver;
 import ai.javaclaw.onboarding.AgentOnboardingProvider;
 import ai.javaclaw.onboarding.AgentOnboardingProviders;
 import ai.javaclaw.onboarding.OnboardingProvider;

@@ -1,7 +1,7 @@
 package ai.javaclaw.providers.anthropic;
 
-import ai.javaclaw.agents.AgentChatModelFactory;
-import ai.javaclaw.agents.ConfiguredAgent;
+import ai.javaclaw.agent.AgentChatModelFactory;
+import ai.javaclaw.agent.ConfiguredAgent;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.AnthropicClientAsync;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;

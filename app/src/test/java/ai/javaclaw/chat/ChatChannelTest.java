@@ -1,9 +1,9 @@
 package ai.javaclaw.chat;
 
 import ai.javaclaw.agent.Agent;
-import ai.javaclaw.agents.AgentConversationId;
-import ai.javaclaw.agents.AgentRegistry;
-import ai.javaclaw.agents.ConfiguredAgent;
+import ai.javaclaw.agent.AgentConversationId;
+import ai.javaclaw.agent.AgentRegistry;
+import ai.javaclaw.agent.ConfiguredAgent;
 import ai.javaclaw.channels.ChannelRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

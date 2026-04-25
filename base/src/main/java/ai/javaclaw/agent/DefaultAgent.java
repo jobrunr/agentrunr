@@ -1,13 +1,12 @@
 package ai.javaclaw.agent;
 
-import ai.javaclaw.agents.AgentChatClientFactory;
-import ai.javaclaw.agents.AgentConversationId;
-import ai.javaclaw.agents.AgentRegistry;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Component
 public class DefaultAgent implements Agent {
@@ -52,13 +51,13 @@ public class DefaultAgent implements Agent {
                         .entity(result));
     }
 
-    private ChatClient chatClient(ai.javaclaw.agents.ConfiguredAgent configuredAgent) {
+    private ChatClient chatClient(ConfiguredAgent configuredAgent) {
         return chatClientFactory.getClient(configuredAgent);
     }
 
-    private java.util.Optional<ai.javaclaw.agents.ConfiguredAgent> resolveAgent(String agentId) {
+    private Optional<ConfiguredAgent> resolveAgent(String agentId) {
         return agentRegistry.findAgent(agentId)
-                .or(() -> agentRegistry.getDefaultAgent());
+                .or(agentRegistry::getDefaultAgent);
     }
 
     private ChatClient fallbackChatClient() {

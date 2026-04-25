@@ -1,4 +1,4 @@
-package ai.javaclaw.agents;
+package ai.javaclaw.agent;
 
 public record ConfiguredAgent(
         String id,
