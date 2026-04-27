@@ -16,6 +16,10 @@
 	    }
 	    .brand-word .brand-agent { color: #fff; }
 	    .brand-word .brand-runr  { color: var(--bulma-primary); }
+
+        .app-toolbar {
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+        }
 	
 	    .chat-page {
 	        position: fixed;

@@ -11,11 +11,10 @@
         radial-gradient(circle at bottom right, rgba(50, 115, 220, .10), transparent 28%),
         linear-gradient(180deg, #0f1419 0%, #151b21 100%);
     color: #e8edf3;
+    padding: 0;
 }
 
 .agents-shell .navbar {
-    background: transparent;
-    border-bottom: 1px solid rgba(255, 255, 255, .08);
 }
 
 .agents-shell .card {
@@ -53,26 +52,11 @@
 {% endblock %}
 
 {% block content %}
-<section class="section agents-shell">
-    <nav class="navbar" role="navigation" aria-label="main navigation">
-        <div class="navbar-brand">
-            <span class="navbar-item">
-                <div class="brand-lockup">
-                    <p class="brand-word"><span class="brand-agent">Java</span><span class="brand-runr">Claw</span></p>
-                </div>
-            </span>
-        </div>
-	        <div class="navbar-end">
-	            <div class="navbar-item">
-	                <a href="/chat" class="button is-dark is-small" hx-boost="false">Chat</a>
-	            </div>
-	            <div class="navbar-item">
-	                <a href="/agents/new" class="button is-primary is-small">Add Agent</a>
-	            </div>
-	        </div>
-	    </nav>
+<section class="agents-shell">
+    {% set toolbarEndTemplate = "fragments/toolbar-end-agents" %}
+    {% include "fragments/toolbar" %}
 
-    <div class="container mt-6">
+    <div class="container">
         <div class="columns is-variable is-6">
             <div class="column is-8">
                 <h1 class="title is-2 has-text-white mb-2">Agents</h1>

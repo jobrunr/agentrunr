@@ -8,44 +8,12 @@
 {% block content %}
 <div class="chat-page" hx-ext="ws" ws-connect="/ws/chat">
 
-    <nav class="navbar has-background-dark" role="navigation" aria-label="main navigation">
-        <div class="navbar-brand">
-            <span class="navbar-item">
-                <div class="brand-lockup">
-                    <p class="brand-word"><span class="brand-agent">Java</span><span class="brand-runr">Claw</span></p>
-                </div>
-            </span>
-        </div>
-        <div class="navbar-end">
-            <div class="navbar-item">
-                <div class="select is-small is-dark" id="agent-selector">
-                    {% autoescape false %}{{ agentSelectorHtml }}{% endautoescape %}
-                </div>
-            </div>
-            <div class="navbar-item">
-                <div class="select is-small is-dark" id="channel-selector">
-                    {% autoescape false %}{{ channelSelectorHtml }}{% endautoescape %}
-                </div>
-            </div>
-            <div class="navbar-item">
-                <a href="/agents" class="button is-small is-dark">
-                    <span>Agents</span>
-                </a>
-            </div>
-            <div class="navbar-item">
-                <a href="http://localhost:{{ jobrunrDashboardPort }}" target="_blank" rel="noopener noreferrer" class="button is-small is-dark">
-                    <span>JobRunr Dashboard</span>
-                </a>
-            </div>
-            <div class="navbar-item">
-                <span id="status-tag" class="tag is-success is-light is-rounded">Connected</span>
-            </div>
-        </div>
-    </nav>
+	    {% set toolbarEndTemplate = "fragments/toolbar-end-chat" %}
+	    {% include "fragments/toolbar" %}
 
-    <div class="chat-body">
-        <div class="container">
-            <div id="chat-messages">
+	    <div class="chat-body">
+	        <div class="container">
+	            <div id="chat-messages">
                 {% autoescape false %}{{ bubblesHtml }}{% endautoescape %}
             </div>
             <div id="typing-indicator"></div>
@@ -62,7 +30,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/htmx-ext-ws@2.0.2/ws.js"></script>
 <script>
 // htmx handles: WebSocket connect/send, OOB DOM swaps, auto-scroll (show:bottom),
 // form reset (hx-on:htmx:wsAfterSend), and Enter-to-send (hx-trigger on textarea).

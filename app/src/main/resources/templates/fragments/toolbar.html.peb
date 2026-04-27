@@ -1,0 +1,11 @@
+<nav class="navbar has-background-dark app-toolbar" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+        {% include "fragments/brand" %}
+    </div>
+    <div class="navbar-end">
+        {% if toolbarEndTemplate %}
+            {% include toolbarEndTemplate %}
+        {% endif %}
+    </div>
+</nav>
+
