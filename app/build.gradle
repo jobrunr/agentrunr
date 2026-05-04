@@ -36,6 +36,7 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 }
 
 bootRun {
