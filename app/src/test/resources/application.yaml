@@ -1,0 +1,7 @@
+jobrunr:
+  dashboard:
+    # Use an ephemeral port during tests to avoid failures when 8081 is already in use.
+    port: 0
+    enabled: false
+pebble:
+  suffix: .html.peb

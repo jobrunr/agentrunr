@@ -1,6 +1,9 @@
 package ai.javaclaw.chat;
 
 import ai.javaclaw.agent.Agent;
+import ai.javaclaw.agent.AgentConversationId;
+import ai.javaclaw.agent.AgentRegistry;
+import ai.javaclaw.agent.ConfiguredAgent;
 import ai.javaclaw.channels.Channel;
 import ai.javaclaw.channels.ChannelMessageReceivedEvent;
 import ai.javaclaw.channels.ChannelRegistry;
@@ -36,13 +39,15 @@ public class ChatChannel implements Channel {
     private static final Logger log = LoggerFactory.getLogger(ChatChannel.class);
 
     private final Agent agent;
+    private final AgentRegistry agentRegistry;
     private final ChannelRegistry channelRegistry;
     private final ChatMemoryRepository chatMemoryRepository;
     private final ConcurrentLinkedQueue<String> pendingMessages = new ConcurrentLinkedQueue<>();
     private final AtomicReference<WebSocketSession> wsSession = new AtomicReference<>();
 
-    public ChatChannel(Agent agent, ChannelRegistry channelRegistry, ChatMemoryRepository chatMemoryRepository) {
+    public ChatChannel(Agent agent, AgentRegistry agentRegistry, ChannelRegistry channelRegistry, ChatMemoryRepository chatMemoryRepository) {
         this.agent = agent;
+        this.agentRegistry = agentRegistry;
         this.channelRegistry = channelRegistry;
         this.chatMemoryRepository = chatMemoryRepository;
         channelRegistry.registerChannel(this);
@@ -96,10 +101,24 @@ public class ChatChannel implements Channel {
     /**
      * Returns all known conversation IDs, always with "web" first.
      */
-    public List<String> conversationIds() {
+    public List<String> agentIds() {
+        List<String> ids = agentRegistry.getAgents().stream().map(ConfiguredAgent::id).toList();
+        if (!ids.isEmpty()) {
+            return ids;
+        }
+        return List.of(agentRegistry.getDefaultAgentId());
+    }
+
+    public String defaultAgentId() {
+        return agentRegistry.getDefaultAgentId();
+    }
+
+    public List<String> conversationIds(String agentId) {
         List<String> result = new ArrayList<>();
         result.add("web");
         chatMemoryRepository.findConversationIds().stream()
+                .filter(id -> agentId.equals(AgentConversationId.agentId(id)))
+                .map(AgentConversationId::rawConversationId)
                 .filter(id -> !id.equals("web"))
                 .forEach(result::add);
         return result;
@@ -109,8 +128,8 @@ public class ChatChannel implements Channel {
      * Loads conversation history for the given conversationId as HTML bubbles.
      * Returns a single welcome bubble if no history exists yet.
      */
-    public List<String> loadHistoryAsHtml(String conversationId) {
-        List<Message> history = chatMemoryRepository.findByConversationId(conversationId);
+    public List<String> loadHistoryAsHtml(String agentId, String conversationId) {
+        List<Message> history = chatMemoryRepository.findByConversationId(AgentConversationId.scoped(agentId, conversationId));
         if (history.isEmpty()) {
             return List.of(ChatHtml.agentBubble("Hi! I'm your JavaClaw assistant. How can I help you today?"));
         }
@@ -125,9 +144,9 @@ public class ChatChannel implements Channel {
     /**
      * Handles a chat message from the web UI for the given conversationId.
      */
-    public String chat(String conversationId, String message) {
+    public String chat(String agentId, String conversationId, String message) {
         channelRegistry.publishMessageReceivedEvent(new ChannelMessageReceivedEvent(getName(), message));
-        return agent.respondTo(conversationId, message);
+        return agent.respondTo(agentId, conversationId, message);
     }
 
     private static String buildBackgroundMessageHtml(String text) {

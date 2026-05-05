@@ -2,8 +2,16 @@ package ai.javaclaw.agent;
 
 public interface Agent {
 
-    String respondTo(String conversationId, String question);
+    default String respondTo(String conversationId, String question) {
+        return respondTo(null, conversationId, question);
+    }
 
-    <T> T prompt(String conversationId, String input, Class<T> result);
+    String respondTo(String agentId, String conversationId, String question);
+
+    default <T> T prompt(String conversationId, String input, Class<T> result) {
+        return prompt(null, conversationId, input, result);
+    }
+
+    <T> T prompt(String agentId, String conversationId, String input, Class<T> result);
 
 }

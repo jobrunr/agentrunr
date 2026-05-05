@@ -24,6 +24,14 @@
             </div>
         </div>
 
+        <div class="field">
+            <label class="label" for="agentId">Agent id</label>
+            <div class="control">
+                <input id="agentId" class="input is-medium" type="text" name="agentId" value="{{ agentId }}" placeholder="e.g. openai-main" autocomplete="off">
+            </div>
+            <p class="help">Use a unique agent id so you can have multiple agents backed by the same provider later.</p>
+        </div>
+
         <div class="buttons mt-4">
             <a class="button is-light is-medium" href="{{ previousStepUrl }}">Back</a>
             <button class="button is-primary is-medium" type="submit">Continue</button>

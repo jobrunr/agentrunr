@@ -1,0 +1,24 @@
+<div class="navbar-item">
+    <div class="select is-small is-dark" id="agent-selector">
+        {% autoescape false %}{{ agentSelectorHtml }}{% endautoescape %}
+    </div>
+</div>
+<div class="navbar-item">
+    <div class="select is-small is-dark" id="channel-selector">
+        {% autoescape false %}{{ channelSelectorHtml }}{% endautoescape %}
+    </div>
+</div>
+<div class="navbar-item">
+    <a href="/agents" class="button is-small is-dark">
+        <span>Agents</span>
+    </a>
+</div>
+<div class="navbar-item">
+    <a href="http://localhost:{{ jobrunrDashboardPort }}" target="_blank" rel="noopener noreferrer" class="button is-small is-dark">
+        <span>JobRunr Dashboard</span>
+    </a>
+</div>
+<div class="navbar-item">
+    <span id="status-tag" class="tag is-success is-light is-rounded">Connected</span>
+</div>
+

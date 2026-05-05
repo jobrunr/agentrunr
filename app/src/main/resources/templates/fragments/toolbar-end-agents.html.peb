@@ -1,0 +1,7 @@
+<div class="navbar-item">
+    <a href="/chat" class="button is-dark is-small" hx-boost="false">Chat</a>
+</div>
+<div class="navbar-item">
+    <a href="/agents/new" class="button is-primary is-small">Add Agent</a>
+</div>
+

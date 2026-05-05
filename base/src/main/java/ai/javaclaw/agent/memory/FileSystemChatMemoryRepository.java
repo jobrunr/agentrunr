@@ -1,11 +1,13 @@
 package ai.javaclaw.agent.memory;
 
+import ai.javaclaw.agent.AgentRegistry;
+import ai.javaclaw.agent.AgentConversationId;
+import ai.javaclaw.agent.AgentWorkspaceResolver;
 import ai.javaclaw.files.YamlDocument;
 import ai.javaclaw.files.YamlParser;
 import org.springframework.ai.chat.memory.AppendableChatMemoryRepository;
 import org.springframework.ai.chat.messages.Message;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -16,14 +18,15 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.stream.Stream;
 
 /**
- * Persists chat conversation history as YAML files inside the agent workspace.
+ * Persists chat conversation history as YAML files inside the active agent workspace.
  *
  * <p>The conversation ID is the channel name, e.g. {@code web} or
  * {@code telegram-123456789}. The repository maps this to a flat file:
- * {@code {workspace}/conversations/chat-{channel}.yaml}
+ * {@code {workspace}/agents/{agentId}/conversations/chat-{channel}.yaml}
  *
  * <p>Each file has a frontmatter block with timestamps and a body containing the
  * message list:
@@ -41,21 +44,47 @@ import java.util.stream.Stream;
 @Component
 public class FileSystemChatMemoryRepository implements AppendableChatMemoryRepository {
 
-    private final Path conversationsDir;
+    private final AgentRegistry agentRegistry;
+    private final AgentWorkspaceResolver agentWorkspaceResolver;
+    private final Path testWorkspacePath;
 
-    public FileSystemChatMemoryRepository(@Value("${agent.workspace:Unknown}") Resource workspaceDir) throws IOException {
-        this.conversationsDir = workspaceDir.getFilePath().resolve("conversations");
+    @Autowired
+    public FileSystemChatMemoryRepository(AgentRegistry agentRegistry, AgentWorkspaceResolver agentWorkspaceResolver) {
+        this.agentRegistry = agentRegistry;
+        this.agentWorkspaceResolver = agentWorkspaceResolver;
+        this.testWorkspacePath = null;
+    }
+
+    FileSystemChatMemoryRepository(Path testWorkspacePath) {
+        this.agentRegistry = null;
+        this.agentWorkspaceResolver = null;
+        this.testWorkspacePath = testWorkspacePath;
     }
 
     @Override
     public List<String> findConversationIds() {
+        if (testWorkspacePath != null) {
+            return listConversationIds(testWorkspacePath.resolve("conversations"));
+        }
+
+        List<String> conversationIds = new ArrayList<>();
+        agentRegistry.getAgents().forEach(configuredAgent -> {
+            Path agentWorkspacePath = agentWorkspaceResolver.resolveWorkspacePath(configuredAgent.workspacePath(), configuredAgent.id());
+            listConversationIds(agentWorkspacePath.resolve("conversations")).stream()
+                    .map(conversationId -> AgentConversationId.scoped(configuredAgent.id(), conversationId))
+                    .forEach(conversationIds::add);
+        });
+        return conversationIds;
+    }
+
+    private List<String> listConversationIds(Path conversationsDir) {
         if (!Files.exists(conversationsDir)) return List.of();
         try (Stream<Path> files = Files.list(conversationsDir)) {
             return files
-                    .map(p -> p.getFileName().toString())
-                    .filter(name -> name.startsWith("chat-") && name.endsWith(".yaml"))
-                    .map(name -> name.substring("chat-".length(), name.length() - ".yaml".length()))
-                    .toList();
+                .map(p -> p.getFileName().toString())
+                .filter(name -> name.startsWith("chat-") && name.endsWith(".yaml"))
+                .map(name -> name.substring("chat-".length(), name.length() - ".yaml".length()))
+                .toList();
         } catch (IOException e) {
             throw new RuntimeException("Failed to list conversations", e);
         }
@@ -121,7 +150,26 @@ public class FileSystemChatMemoryRepository implements AppendableChatMemoryRepos
      * {@code conversations/chat-{channel}.yaml}.
      */
     private Path resolveFile(String conversationId) {
-        return conversationsDir.resolve("chat-" + conversationId + ".yaml");
+        Path conversationsDir = conversationsDirFor(conversationId);
+        String rawConversationId = AgentConversationId.rawConversationId(conversationId);
+        return conversationsDir.resolve("chat-" + rawConversationId + ".yaml");
+    }
+
+    private Path conversationsDirFor(String conversationId) {
+        if (testWorkspacePath != null) {
+            return testWorkspacePath.resolve("conversations");
+        }
+
+        String scopedAgentId = AgentConversationId.agentId(conversationId);
+        try {
+            Path workspacePath = agentRegistry.findAgent(scopedAgentId)
+                    .or(() -> agentRegistry.getDefaultAgent())
+                    .map(configuredAgent -> agentWorkspaceResolver.resolveWorkspacePath(configuredAgent.workspacePath(), configuredAgent.id()))
+                    .orElseGet(agentWorkspaceResolver::rootWorkspacePath);
+            return agentWorkspaceResolver.initializeWorkspace(workspacePath).resolve("conversations");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to resolve active agent conversations directory", e);
+        }
     }
 
     private static Path ensureDirectory(Path dir) {

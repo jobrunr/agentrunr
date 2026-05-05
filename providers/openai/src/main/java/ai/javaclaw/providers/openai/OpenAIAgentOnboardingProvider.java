@@ -30,4 +30,5 @@ public class OpenAIAgentOnboardingProvider implements AgentOnboardingProvider {
     public String defaultModel() {
         return "gpt-5.4";
     }
+
 }

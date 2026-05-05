@@ -6,7 +6,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.core.io.FileSystemResource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,7 +22,7 @@ class FileSystemChatMemoryRepositoryTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        repository = new FileSystemChatMemoryRepository(new FileSystemResource(workspaceDir));
+        repository = new FileSystemChatMemoryRepository(workspaceDir);
     }
 
     // -----------------------------------------------------------------------
@@ -56,6 +55,13 @@ class FileSystemChatMemoryRepositoryTest {
                 .contains("createdAt:")
                 .contains("updatedAt:")
                 .contains("user: Hi");
+    }
+
+    @Test
+    void saveStoresConversationInsideAgentWorkspaceConversationsFolder() {
+        repository.saveAll("web", List.of(new UserMessage("Hi")));
+
+        assertThat(workspaceDir.resolve("conversations").resolve("chat-web.yaml")).exists();
     }
 
     @Test
