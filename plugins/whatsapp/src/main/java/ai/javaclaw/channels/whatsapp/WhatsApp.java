@@ -159,7 +159,7 @@ public class WhatsApp {
         if (payload == null || payload.text() == null || payload.text().isBlank()) {
             return;
         }
-        if (!isOurChat(payload.chat())) {
+        if (!isOurChat(payload.senderJid())) {
             LOGGER.warn("Ignoring WhatsApp message from chat '{}', we only answer in '{}'", payload.chat(), chatJid);
             return;
         }
@@ -174,11 +174,11 @@ public class WhatsApp {
         }
     }
 
-    private boolean isOurChat(String incomingChatJid) {
-        if (chatJid == null || chatJid.isBlank() || incomingChatJid == null) {
+    private boolean isOurChat(String incomingSenderJid) {
+        if (chatJid == null || chatJid.isBlank() || incomingSenderJid == null) {
             return false;
         }
-        return chatJid.trim().equalsIgnoreCase(incomingChatJid.trim());
+        return chatJid.trim().equalsIgnoreCase(incomingSenderJid.trim());
     }
 
     private void rememberSentMessage(String messageId) {
