@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
-class ChatClientRegistryTest {
+class DefaultChatClientRegistryTest {
 
     /** Factory that returns a distinct model instance per provider name (keyed by model id). */
     private static ChatModelFactory factoryReturning(Map<String, ChatModel> modelsByModelId) {
