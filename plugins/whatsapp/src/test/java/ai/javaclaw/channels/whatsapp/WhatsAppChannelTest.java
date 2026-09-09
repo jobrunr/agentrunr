@@ -2,9 +2,11 @@ package ai.javaclaw.channels.whatsapp;
 
 import ai.javaclaw.agent.Agent;
 import ai.javaclaw.channels.ChannelRegistry;
+import ai.javaclaw.channels.whatsapp.WhatsAppChannel.WhatsAppChannelMessageReceivedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,7 +29,8 @@ class WhatsAppChannelTest {
     @Mock
     private Agent agent;
 
-    private final ChannelRegistry channelRegistry = new ChannelRegistry();
+    @Mock
+    private ChannelRegistry channelRegistry;
 
     private WhatsAppChannel channel;
 
@@ -43,7 +46,7 @@ class WhatsAppChannelTest {
         channel.start();
 
         verify(whatsApp).registerMessageReceiver(any());
-        assertThat(channelRegistry.getLatestChannel()).isSameAs(channel);
+        verify(channelRegistry).registerChannel(channel);
     }
 
     @Test
@@ -53,18 +56,15 @@ class WhatsAppChannelTest {
         channel.start();
 
         verify(whatsApp, never()).registerMessageReceiver(any());
-        assertThat(channelRegistry.getLatestChannel()).isNull();
+        verifyNoInteractions(channelRegistry);
     }
 
     @Test
     void stopUnregistersChannelFromRegistry() {
-        when(whatsApp.start()).thenReturn(true);
-        channel.start();
-
         channel.stop();
 
         verify(whatsApp).stop();
-        assertThat(channelRegistry.getLatestChannel()).isNull();
+        verify(channelRegistry).unregisterChannel(channel);
     }
 
     @Test
@@ -84,14 +84,31 @@ class WhatsAppChannelTest {
     }
 
     @Test
-    void publishesMessageReceivedEventForTheAllowedChat() {
-        when(whatsApp.start()).thenReturn(true);
-        channel.start();
+    void publishesAnEventNamingTheChatAsTheConversation() {
         when(agent.respondTo(ALLOWED_JID, "hello")).thenReturn("hi there");
 
         channel.onMessage(ALLOWED_JID, "hello");
 
-        assertThat(channelRegistry.getLatestChannel()).isSameAs(channel);
+        ArgumentCaptor<WhatsAppChannelMessageReceivedEvent> published =
+                ArgumentCaptor.forClass(WhatsAppChannelMessageReceivedEvent.class);
+        verify(channelRegistry).publishMessageReceivedEvent(published.capture());
+        assertThat(published.getValue().getChannel()).isEqualTo(WhatsAppChannel.CHANNEL_ID);
+        assertThat(published.getValue().getMessage()).isEqualTo("hello");
+        assertThat(published.getValue().getConversationId()).isEqualTo(ALLOWED_JID);
+    }
+
+    @Test
+    void publishesTheEventBeforeAskingTheAgent() {
+        // The agent turn takes seconds; the registry has to know which channel is live before then,
+        // or a task finishing mid-turn would have its reply routed somewhere else.
+        when(agent.respondTo(ALLOWED_JID, "hello")).thenAnswer(invocation -> {
+            verify(channelRegistry).publishMessageReceivedEvent(any());
+            return "hi there";
+        });
+
+        channel.onMessage(ALLOWED_JID, "hello");
+
+        verify(whatsApp).sendMessage("hi there");
     }
 
     @Test

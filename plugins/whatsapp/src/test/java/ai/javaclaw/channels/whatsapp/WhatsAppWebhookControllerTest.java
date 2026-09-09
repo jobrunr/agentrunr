@@ -15,7 +15,8 @@ import static org.mockito.Mockito.verify;
 class WhatsAppWebhookControllerTest {
 
     private static final WacliWebhookPayload PAYLOAD = new WacliWebhookPayload(
-            "1234567890@s.whatsapp.net", "msg-id", false, "hello", "Tester", "2024-01-03T00:00:00Z");
+            "1234567890@s.whatsapp.net", "msg-id", "1234567890@s.whatsapp.net",
+            false, "hello", "Tester", "2024-01-03T00:00:00Z");
 
     private static final long WAIT_FOR_BACKGROUND_WORK_MILLIS = 2_000;
 
